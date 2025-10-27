@@ -1,0 +1,2 @@
+[console_scripts]
+microatoll-sim = gui.main_window:launch

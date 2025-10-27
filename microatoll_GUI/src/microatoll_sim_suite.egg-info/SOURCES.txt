@@ -1,0 +1,16 @@
+pyproject.toml
+src/gui/__init__.py
+src/gui/main_window.py
+src/gui/plot_interactions.py
+src/gui/sim_plot.py
+src/gui/sl_plot.py
+src/io_interface/__init__.py
+src/io_interface/csvio.py
+src/microatoll_sim_suite.egg-info/PKG-INFO
+src/microatoll_sim_suite.egg-info/SOURCES.txt
+src/microatoll_sim_suite.egg-info/dependency_links.txt
+src/microatoll_sim_suite.egg-info/entry_points.txt
+src/microatoll_sim_suite.egg-info/requires.txt
+src/microatoll_sim_suite.egg-info/top_level.txt
+src/simulator/__init__.py
+src/simulator/simulator.py
