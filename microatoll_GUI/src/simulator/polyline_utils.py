@@ -23,10 +23,91 @@ def circle_by_spacing(spacing_m: float, radius: float = 1.0) -> tuple[np.ndarray
 
 
 # -------- φ/ブロック判定 --------
-def phi_by_block_level(y: np.ndarray, bh: float) -> np.ndarray:
-    """y < BH をブロック（phi=0）、それ以外を phi=1。"""
-    return (np.asarray(y, dtype=float) >= float(bh)).astype(int)
+def phi_by_block_level(y: np.ndarray, bh: float, sea_level: float | None = None) -> np.ndarray:
+    """
+    ブロック条件:
+      - y < BH  → 0（ブロック）
+      - sea_level が与えられる場合、y > sea_level → 0（ブロック）
+      - それ以外 → 1（可動）
+    """
+    yy = np.asarray(y, dtype=float)
+    bhf = float(bh)
+    if sea_level is None:
+        return (yy >= bhf).astype(int)
+    # 可動域は [BH, H(t)] の区間
+    return ((yy >= bhf) & (yy <= float(sea_level))).astype(int)
 
+
+def _close_ring(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """(x,y) を終点=始点でクローズ。"""
+    if x[0] == x[-1] and y[0] == y[-1]:
+        return x, y
+    return np.r_[x, x[0]], np.r_[y, y[0]]
+
+def _point_segment_dist2(px, py, x1, y1, x2, y2):
+    """
+    点列 p=(px,py) と線分 (x1,y1)-(x2,y2) の二乗距離をベクトル化して返す。
+    px,py は配列可。戻り値は px と同形の ndarray。
+    """
+    px = np.asarray(px, dtype=float)
+    py = np.asarray(py, dtype=float)
+    vx, vy = float(x2 - x1), float(y2 - y1)
+    wx, wy = px - float(x1), py - float(y1)
+    vv = vx * vx + vy * vy
+    if vv == 0.0:
+        return (wx * wx + wy * wy)
+    t = (wx * vx + wy * vy) / vv
+    t = np.clip(t, 0.0, 1.0)
+    dx = wx - t * vx
+    dy = wy - t * vy
+    return dx * dx + dy * dy
+
+def inside_closed_polyline_mask(
+    px: np.ndarray, py: np.ndarray, poly_x: np.ndarray, poly_y: np.ndarray, *, boundary_eps: float = 1e-9
+) -> np.ndarray:
+    """
+    点列 (px,py) が閉曲線 poly の内部にあるかを even-odd ルールで判定。
+    - 境界上（線分からの距離 <= eps）は True とする（ブロック扱い）。
+    - poly は単純閉曲線（自己交差なし）を前提。
+    """
+    px = np.asarray(px, dtype=float)
+    py = np.asarray(py, dtype=float)
+    vx, vy = np.asarray(poly_x, dtype=float), np.asarray(poly_y, dtype=float)
+    vx, vy = _close_ring(vx, vy)
+    n = len(vx) - 1
+
+    # 1) 境界判定（最小距離）
+    eps2 = (float(boundary_eps) ** 2)
+    min_d2 = np.full(px.shape, np.inf, dtype=float)
+    for i in range(n):
+        d2 = _point_segment_dist2(px, py, vx[i], vy[i], vx[i+1], vy[i+1])
+        min_d2 = np.minimum(min_d2, d2)
+    on_boundary = (min_d2 <= eps2)
+
+    # 2) 射線法（x 正方向に半直線）
+    inside = np.zeros_like(px, dtype=bool)
+    for i in range(n):
+        x1, y1, x2, y2 = vx[i], vy[i], vx[i+1], vy[i+1]
+        # py が [min(y1,y2), max(y1,y2)) にある辺のみ対象（半開区間で二重カウント防止）
+        cond_y = ((y1 <= py) & (py < y2)) | ((y2 <= py) & (py < y1))
+        # 交点の x 座標（分母0は cond_y が偽になるので気にしない）
+        x_int = x1 + (py - y1) * (x2 - x1) / (y2 - y1 + 1e-300)
+        cross = cond_y & (px < x_int)
+        inside ^= cross
+
+    return on_boundary | inside
+
+
+# 許容域マスク（可動域）
+def allowed_mask(y: np.ndarray, bh: float, sea_level: float | None) -> np.ndarray:
+    """
+    可動域 [BH, H(t)] を True、それ以外 False にするブールマスク。
+    sea_level が None の時は [BH, +∞)。
+    """
+    yy = np.asarray(y, dtype=float)
+    if sea_level is None:
+        return yy >= float(bh)
+    return (yy >= float(bh)) & (yy <= float(sea_level))
 
 # -------- 法線（外向き） --------
 def outward_normals_closed(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

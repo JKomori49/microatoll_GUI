@@ -226,6 +226,11 @@ class MainWindow(QMainWindow):
             if not xs:
                 raise ValueError("No valid numeric rows were found.")
             self.sl_plot.plot_curve(xs, ys, meta)
+            # NEW: シミュレーションへ海水準曲線を登録
+            try:
+                self.sim.set_sea_level_curve(xs, ys)  # xs=year, ys=sea-level[m]
+            except Exception:
+                pass
             self._last_dir = Path(path).parent
             self.statusBar().showMessage(f"Imported: {Path(path).name}", 2500)
 

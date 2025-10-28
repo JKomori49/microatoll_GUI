@@ -57,6 +57,12 @@ class SettingsPanel(QWidget):
         self.base_height.setSingleStep(0.01)
         self.base_height.setSuffix(" m")
 
+        self.t0 = QDoubleSpinBox()
+        self.t0.setRange(-1e9, 1e9)
+        self.t0.setDecimals(3)
+        self.t0.setValue(0.0)
+        self.t0.setSuffix(" yr")
+
         self.dt = QDoubleSpinBox()
         self.dt.setRange(0.01, 10.0)
         self.dt.setDecimals(2)
@@ -78,6 +84,7 @@ class SettingsPanel(QWidget):
         form.addRow("Tidal range:", self.tidal)
         form.addRow("Max elevation:", self.max_elev)
         form.addRow("Base Height (BH):", self.base_height)
+        form.addRow("T0 (initial time):", self.t0)
         form.addRow("Δt:", self.dt)
         form.addRow("Steps:", self.steps)
 
@@ -92,7 +99,7 @@ class SettingsPanel(QWidget):
 
         # --- Signals ---
         self.apply_btn.clicked.connect(self._emit_params)
-        for w in (self.growth, self.tidal, self.max_elev, self.base_height, self.dt, self.steps):
+        for w in (self.growth, self.tidal, self.max_elev, self.base_height, self.t0, self.dt, self.steps):
             w.editingFinished.connect(self._emit_params)
         self.resolution.currentIndexChanged.connect(self._emit_params)
 
@@ -106,6 +113,7 @@ class SettingsPanel(QWidget):
             max_elevation_m=float(self.max_elev.value()),
             base_height=float(self.base_height.value()),
             vertex_spacing_m=float(spacing),
+            t0_years=float(self.t0.value()),
             dt_years=float(self.dt.value()),
             n_steps=int(self.steps.value()),
         )
