@@ -33,6 +33,7 @@
     <Compile Include="src\io_interface\__init__.py" />
     <Compile Include="src\models\polyline.py" />
     <Compile Include="src\models\__init__.py" />
+    <Compile Include="src\simulator\iteration.py" />
     <Compile Include="src\simulator\polyline_utils.py" />
     <Compile Include="src\simulator\simulator.py" />
     <Compile Include="src\simulator\test_engine.py" />

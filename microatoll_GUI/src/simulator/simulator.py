@@ -21,9 +21,10 @@ class SimParams:
     tidal_range_m: float = 2.7
     max_elevation_m: float = 1.5
     dt_years: float = 0.1         # Δt
-    n_steps: int = 50
     base_height: float = 0.0      # BH
     t0_years: float = 0.0         # T0
+    t1_years: float = 100.0   # end time
+    record_every_years: float = 0.0  # 0 = 記録しない
     vertex_spacing_m: float = 0.05
     resample_each_step: bool = True  # 追加: 毎ステップのリサンプリングON/OFF
 
@@ -70,6 +71,25 @@ class Simulator:
         if self._sl_t is None or self._sl_h is None:
             return None
         return float(np.interp(float(t_years), self._sl_t, self._sl_h))
+
+    def _sea_level_min_between(self, t_prev: float, t_now: float) -> float | None:
+        """
+        指定した期間 [t_prev, t_now] 内の海水準の最小値を返す。
+        - self._sl_t, self._sl_h が未設定なら None。
+        - 区間にデータ点が存在しない場合も None を返す（＝海水準ブロックを適用しない）。
+        - t_prev > t_now の場合は自動的に入れ替える。
+        """
+        if self._sl_t is None or self._sl_h is None:
+            return None
+
+        t1, t2 = sorted((float(t_prev), float(t_now)))
+
+        # 区間に含まれる観測データを抽出
+        mask = (self._sl_t >= t1) & (self._sl_t <= t2)
+        if not np.any(mask):
+            return None  # データ点なし → ブロックしない
+
+        return float(np.min(self._sl_h[mask]))
 
     # ---- init / state ----
     def _ensure_initialized(self) -> None:
@@ -128,9 +148,13 @@ class Simulator:
             x_tmp, y_tmp, phi_tmp = x_new, y_new, phi_old
 
         # 3) 不可逆 φ 更新（★軽量化：φ=1の候補だけ判定）
-        tau_new = int(self._state["tau"]) + 1
+        tau_prev = int(self._state["tau"])
+        t_prev = float(p.t0_years) + float(p.dt_years) * tau_prev
+        tau_new = tau_prev + 1
         t_new = float(p.t0_years) + float(p.dt_years) * tau_new
-        H_new = self._sea_level_at(t_new)
+
+        # 区間 [t_prev, t_new] の最小海水準を取得
+        H_min = self._sea_level_min_between(t_prev, t_new)
 
         # 更新対象のインデックス（phi_tmp==1 の点だけ）
         cand_idx = np.flatnonzero(phi_tmp == 1)
@@ -144,7 +168,7 @@ class Simulator:
             ys = y_tmp[cand_idx]
 
             # 可動域 [BH, H(t)] の判定（サブセットのみ）
-            allow_cand = allowed_mask(ys, p.base_height, H_new)  # True/False (len = |cand|)
+            allow_cand = allowed_mask(ys, p.base_height, H_min)  # True/False (len = |cand|)
 
             # 旧ポリライン内部ブロック（サブセットのみ）
             inside_old_cand = inside_closed_polyline_mask(

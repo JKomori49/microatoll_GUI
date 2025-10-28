@@ -160,32 +160,52 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _run_sim(self) -> None:
-        """Advance exactly one time step and draw old/new polylines together."""
-        # 1) パラメータ反映（T0, Δt, gr, BH など）
+        """Run simulation automatically until T1 and display final + intermediate polylines."""
         params = self.settings_panel.current_params()
         self.sim.set_params(params)
+        self.sim.initialize()
+
+        try:
+            from simulator.iteration import IterativeRunner
+            runner = IterativeRunner(self.sim)
+            results = runner.run_until_end()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.statusBar().showMessage(f"Simulation error: {e}", 5000)
+            return
+
+        # --- 最終結果 ---
+        final = results["final"]["new"]
+        xs, ys, phi = final["x"], final["y"], final["phi"]
         bh = getattr(params, "base_height", 0.0)
+        t_final = final["t_years"]
 
-        # 2) 1ステップ進める
-        results = self.sim.step_once()
-        old = results["old"]; new = results["new"]
+        self.sim_plot.ax.clear()
 
-        # 3) 描画（旧=細線、新=φ色分け + y<BHをシェード）
-        if hasattr(self.sim_plot, "plot_polyline_step"):
-            self.sim_plot.plot_polyline_step(
-                (old["x"], old["y"]),
-                (new["x"], new["y"]),
-                new_phi=new["phi"],
-                block_level=bh,
-                show_vertices=True,
-                clear=True,
+        # --- 中間ポリラインを灰色で描画 ---
+        for rec in results.get("records", []):
+            self.sim_plot.ax.plot(
+                rec["x"], rec["y"],
+                color="0.6", linewidth=0.8, alpha=0.6, zorder=1
             )
-        else:
-            # フォールバック（新だけプロット）
-            self.sim_plot.plot_polyline_with_phi(new["x"], new["y"], new["phi"], clear=True, shade_block_region=True, block_level=bh)
 
-        # 進行状況表示（t と τ）
-        self.statusBar().showMessage(f"Step τ={new['tau']}  |  t={new['t_years']:.3f} yr", 2500)
+        # --- 最終ポリラインを赤青で描画 ---
+        self.sim_plot.plot_polyline_with_phi(
+            xs, ys, phi,
+            clear=False,  # すでにax.clear()済み
+            shade_block_region=True,
+            block_level=bh,
+            show_vertices=False
+        )
+
+        self.sim_plot.ax.set_title(f"Final time = {t_final:.2f} yr")
+        self.sim_plot.canvas.draw_idle()
+
+        self.statusBar().showMessage(
+            f"Simulation finished. Recorded {len(results.get('records', []))} steps.",
+            4000
+        )
 
 
     @Slot()

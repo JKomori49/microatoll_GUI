@@ -1,9 +1,9 @@
 # src/gui/setting_panel.py
 from __future__ import annotations
 
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import (
-    QComboBox, QWidget, QFormLayout, QDoubleSpinBox, QSpinBox,
+    QComboBox, QGridLayout, QLabel, QSizePolicy, QWidget, QFormLayout, QDoubleSpinBox, QSpinBox,
     QHBoxLayout, QPushButton, QVBoxLayout,
 )
 
@@ -12,11 +12,15 @@ from simulator.simulator import SimParams
 
 RES_SPACING_M = {"High": 0.01, "Medium": 0.05, "Low": 0.1}
 
+
 class SettingsPanel(QWidget):
     """
-    下段のパラメータセッティングパネル。
-    - Growth rate, Tidal range, Max elevation, Base Height (BH), Δt, Steps
-    - Apply/Run ボタン
+    下段のパラメータセッティングパネル（4列グリッド：Label|Input|Label|Input）
+      - Polyline resolution（単独行）
+      - Growth rate | Base Height (BH)
+      - T0 (initial time) | T1 (end time)
+      - Δt | Record every
+      - Initialize / Apply / Run ボタン
     値の確定（編集完了 or Apply）で parametersChanged(SimParams) を送出します。
     """
 
@@ -25,31 +29,18 @@ class SettingsPanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
-        # Resolution (vertex spacing)
+        # --- Widgets ---
+        # 解像度（頂点間隔）
         self.resolution = QComboBox()
         self.resolution.addItems(["High", "Medium", "Low"])
         self.resolution.setCurrentText("Low")
 
-        # --- Widgets ---
         self.growth = QDoubleSpinBox()
         self.growth.setRange(0.0, 50.0)
         self.growth.setDecimals(2)
         self.growth.setValue(10.0)
         self.growth.setSuffix(" mm/yr")
 
-        self.tidal = QDoubleSpinBox()
-        self.tidal.setRange(0.0, 10.0)
-        self.tidal.setDecimals(2)
-        self.tidal.setValue(2.7)
-        self.tidal.setSuffix(" m")
-
-        self.max_elev = QDoubleSpinBox()
-        self.max_elev.setRange(0.0, 10.0)
-        self.max_elev.setDecimals(3)
-        self.max_elev.setValue(1.5)
-        self.max_elev.setSuffix(" m")
-
-        # NEW: Base Height (BH)
         self.base_height = QDoubleSpinBox()
         self.base_height.setRange(-1e3, 1e3)
         self.base_height.setDecimals(3)
@@ -63,45 +54,93 @@ class SettingsPanel(QWidget):
         self.t0.setValue(0.0)
         self.t0.setSuffix(" yr")
 
+        self.t1 = QDoubleSpinBox()
+        self.t1.setRange(-1e9, 1e9)
+        self.t1.setDecimals(3)
+        self.t1.setValue(100.0)
+        self.t1.setSuffix(" yr")
+
         self.dt = QDoubleSpinBox()
         self.dt.setRange(0.01, 10.0)
         self.dt.setDecimals(2)
         self.dt.setValue(1.0)
         self.dt.setSuffix(" yr")
 
-        self.steps = QSpinBox()
-        self.steps.setRange(1, 10_000)
-        self.steps.setValue(50)
+        self.record_every = QDoubleSpinBox()
+        self.record_every.setRange(0.0, 1e6)
+        self.record_every.setDecimals(3)
+        self.record_every.setValue(10.0)
+        self.record_every.setSuffix(" yr")
 
         self.apply_btn = QPushButton("Apply")
         self.run_btn = QPushButton("Run")
         self.init_btn = QPushButton("Initialize")
 
-        # --- Layout ---
-        form = QFormLayout()
-        form.addRow("Polyline resolution:", self.resolution)
-        form.addRow("Growth rate:", self.growth)
-        form.addRow("Tidal range:", self.tidal)
-        form.addRow("Max elevation:", self.max_elev)
-        form.addRow("Base Height (BH):", self.base_height)
-        form.addRow("T0 (initial time):", self.t0)
-        form.addRow("Δt:", self.dt)
-        form.addRow("Steps:", self.steps)
+        # 入力欄は横に広がるように
+        for w in (self.resolution, self.growth, self.base_height, self.t0, self.t1, self.dt, self.record_every):
+            w.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
+        # --- Layout: 4-column grid (L1 | W1 | L2 | W2) ---
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(6)
+
+        def L(text: str) -> QLabel:
+            lab = QLabel(text)
+            lab.setAlignment(Qt.AlignRight | Qt.AlignVCenter)  # ラベルは右寄せで列頭を揃える
+            return lab
+
+        row = 0
+        # 1行目：Resolution は入力を3列ぶち抜き（見栄え優先）
+        grid.addWidget(L("Polyline resolution:"), row, 0)
+        grid.addWidget(self.resolution, row, 1, 1, 3)  # (row, col, rowspan, colspan)
+        row += 1
+
+        # 2行目：Growth | BH
+        grid.addWidget(L("Growth rate:"),      row, 0)
+        grid.addWidget(self.growth,            row, 1)
+        grid.addWidget(L("Base Height (BH):"), row, 2)
+        grid.addWidget(self.base_height,       row, 3)
+        row += 1
+
+        # 3行目：T0 | T1
+        grid.addWidget(L("T0 (initial time):"), row, 0)
+        grid.addWidget(self.t0,                 row, 1)
+        grid.addWidget(L("T1 (end time):"),     row, 2)
+        grid.addWidget(self.t1,                 row, 3)
+        row += 1
+
+        # 4行目：Δt | Record every
+        grid.addWidget(L("Δt:"),               row, 0)
+        grid.addWidget(self.dt,                row, 1)
+        grid.addWidget(L("Record every:"),     row, 2)
+        grid.addWidget(self.record_every,      row, 3)
+        row += 1
+
+        # 列ストレッチ：入力列(1,3)を広げ、ラベル列(0,2)は内容幅に合わせる
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 0)
+        grid.setColumnStretch(3, 1)
+
+        # ボタン行
         buttons = QHBoxLayout()
         buttons.addStretch(1)
+        buttons.addWidget(self.init_btn)
         buttons.addWidget(self.apply_btn)
         buttons.addWidget(self.run_btn)
 
         root = QVBoxLayout(self)
-        root.addLayout(form)
+        root.addLayout(grid)
         root.addLayout(buttons)
 
         # --- Signals ---
         self.apply_btn.clicked.connect(self._emit_params)
-        for w in (self.growth, self.tidal, self.max_elev, self.base_height, self.t0, self.dt, self.steps):
+        for w in (self.growth, self.base_height, self.t0, self.t1, self.dt, self.record_every):
             w.editingFinished.connect(self._emit_params)
         self.resolution.currentIndexChanged.connect(self._emit_params)
+
 
     # ---- Public API ----
     def current_params(self) -> SimParams:
@@ -109,13 +148,12 @@ class SettingsPanel(QWidget):
         spacing = RES_SPACING_M.get(self.resolution.currentText(), 0.05)
         return SimParams(
             growth_rate_mm_yr=float(self.growth.value()),
-            tidal_range_m=float(self.tidal.value()),
-            max_elevation_m=float(self.max_elev.value()),
             base_height=float(self.base_height.value()),
             vertex_spacing_m=float(spacing),
             t0_years=float(self.t0.value()),
+            t1_years=float(self.t1.value()),
             dt_years=float(self.dt.value()),
-            n_steps=int(self.steps.value()),
+            record_every_years=float(self.record_every.value()),
         )
 
     def get_bh(self) -> float:

@@ -264,9 +264,8 @@ class SimPlot(QWidget):
 
         bh_text = f"{block_level:.3f}".rstrip("0").rstrip(".")
         self.ax.legend(handles=[
-            self.ax.plot([], [], color="red",  linewidth=2.0, label="phi=1 (alive)")[0],
-            self.ax.plot([], [], color="blue", linewidth=2.0, label="phi=0 (dead)")[0],
-            self.ax.axhspan(0, 0, facecolor=(0.85, 0.85, 0.85), alpha=0.6, label=f"block region y < BH ({bh_text})"),
+            self.ax.plot([], [], color="red",  linewidth=2.0, label="living")[0],
+            self.ax.plot([], [], color="blue", linewidth=2.0, label="dead")[0],
         ], loc="upper right")
         self.canvas.draw_idle()
 
