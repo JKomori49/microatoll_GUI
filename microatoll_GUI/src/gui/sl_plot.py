@@ -29,6 +29,12 @@ class SeaLevelPlot(QWidget):
         self.fig = Figure(figsize=(5, 3), tight_layout=True)
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
+        
+        self._hlg_line = None          # 全体を結ぶ細線（任意）
+        self._hlg_tri = None           # ▲マーカー（同じ/上昇）
+        self._hlg_circ = None          # ●マーカー（下降）
+        self._has_curve = False
+        self._y_range = None
 
         self._init_empty()
         lay = QVBoxLayout(self)
@@ -39,39 +45,111 @@ class SeaLevelPlot(QWidget):
         self._interact.connect()
 
     # --- public API -------------------------------------------------
-    def plot_curve(self, xs: Iterable[float], ys: Iterable[float], meta: Dict[str, Any]) -> None:
-        xs = list(xs)
-        ys = list(ys)
-
+    def plot_curve(self, xs, ys, meta: dict) -> None:
+        xs = list(xs); ys = list(ys)
         self.ax.clear()
-        self.ax.plot(xs, ys, linewidth=1.5)
+        self._hlg_line = None
+        self._has_curve = True  # ← 追加
+
+        self.ax.plot(xs, ys, linewidth=0.8, label="Sea level")
         self.ax.grid(True, alpha=0.3)
-
-        # ラベル決定
-        xlabel = "X"
-        ylabel = "Y"
-        header = [h.strip() for h in (meta.get("header") or [])]
-        xi = meta.get("x_index")
-        yi = meta.get("y_index")
-        if isinstance(xi, int) and header and xi < len(header):
-            xlabel = header[xi] or xlabel
-        if isinstance(yi, int) and header and yi < len(header):
-            ylabel = header[yi] or ylabel
-
-        self.ax.set_xlabel(xlabel)
-        self.ax.set_ylabel(ylabel)
-
-        name = Path(meta.get("path", "CSV")).name
+        name = meta.get("name") or meta.get("filename") or "Sea-level CSV"
         self.ax.set_title(f"{name}  (rows: {len(xs)}, skipped: {meta.get('skipped_rows', 0)})")
+        self.ax.legend(loc="best")
 
-        # y共有のために範囲を決めて発信
-        ymin, ymax = self._compute_y_range(ys)
-        self._y_range = (ymin, ymax)
-        self.ax.set_ylim(ymin, ymax)
+        ymin = min(ys) if ys else -1.0
+        ymax = max(ys) if ys else 1.0
+        pad = 0.05 * (ymax - ymin + 1e-12)
+        self._y_range = (ymin - pad, ymax + pad)
+        self.ax.set_ylim(*self._y_range)
+        self.canvas.draw_idle()
+        self._broadcast_geometry()
+        self.yRangeChanged.emit(*self._y_range)
+
+    def clear_hlg(self) -> None:
+        """HLGオーバーレイ（線・マーカー）だけを消す（CSVは残す）。"""
+        changed = False
+        if self._hlg_line is not None:
+            self._hlg_line.remove()
+            self._hlg_line = None
+            changed = True
+        if self._hlg_tri is not None:
+            self._hlg_tri.remove()
+            self._hlg_tri = None
+            changed = True
+        if self._hlg_circ is not None:
+            self._hlg_circ.remove()
+            self._hlg_circ = None
+            changed = True
+        if changed:
+            # 凡例を描き直し（Sea level のみ or 他の凡例と整合）
+            self.ax.legend(loc="best")
+            self.canvas.draw_idle()
+            self._broadcast_geometry()
+
+    def plot_hlg_series(self, times, values) -> None:
+        """
+        記録済みHLG (t, y) をオーバーレイ表示。
+        前回より同じ/高い点は ▲、低い点は ● で描画する。
+        入力が空・不整合ならHLGのみクリア（CSVはそのまま）。
+        """
+        ts = list(times or [])
+        ys = list(values or [])
+        if (not ts) or (not ys) or len(ts) != len(ys):
+            self.clear_hlg()
+            return
+
+        # 線（全体の接続）を用意（初回のみ作成、以降は更新）
+        if self._hlg_line is None:
+            (self._hlg_line,) = self.ax.plot(
+                ts, ys, linestyle="-", linewidth=1.0,
+                color="0.35", alpha=0.9, label="HLG (recorded)"
+            )
+        else:
+            self._hlg_line.set_data(ts, ys)
+
+        # 前回値との比較でマーカー分類（初点は▲扱い）
+        tri_t, tri_y = [], []   # ▲：同じ/上昇（>=）
+        circ_t, circ_y = [], [] # ●：下降（<）
+        prev = None
+        for t, v in zip(ts, ys):
+            if prev is None or v >= prev:
+                tri_t.append(t); tri_y.append(v)
+            else:
+                circ_t.append(t); circ_y.append(v)
+            prev = v
+
+        # 既存マーカーを消して描き直し
+        if self._hlg_tri is not None:
+            self._hlg_tri.remove()
+            self._hlg_tri = None
+        if self._hlg_circ is not None:
+            self._hlg_circ.remove()
+            self._hlg_circ = None
+
+        if tri_t:
+            self._hlg_tri = self.ax.scatter(
+                tri_t, tri_y, marker="^", s=28, linewidths=0.6,
+                edgecolors="0.2", facecolors="0.2", alpha=0.95, label="HLG"
+            )
+        if circ_t:
+            self._hlg_circ = self.ax.scatter(
+                circ_t, circ_y, marker="o", s=26, linewidths=0.6,
+                edgecolors="0.25", facecolors="0.65", alpha=0.95, label="HLS after diedown"
+            )
+
+        # 凡例更新（Sea level + HLG系）
+        self.ax.legend(loc="best")
+
+        # yレンジはCSV基準を維持（必要ならHLGも含めて拡張する以下を有効化）
+        # if self._y_range:
+        #     ymin = min(self._y_range[0], min(ys))
+        #     ymax = max(self._y_range[1], max(ys))
+        #     self._y_range = (ymin, ymax)
+        #     self.ax.set_ylim(ymin, ymax)
 
         self.canvas.draw_idle()
-        self._broadcast_geometry() 
-        self.yRangeChanged.emit(ymin, ymax)
+        self._broadcast_geometry()
 
     def current_y_range(self) -> Optional[Tuple[float, float]]:
         return self._y_range

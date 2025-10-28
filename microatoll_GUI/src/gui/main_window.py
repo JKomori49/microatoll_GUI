@@ -160,7 +160,6 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _run_sim(self) -> None:
-        """Run simulation automatically until T1 and display final + intermediate polylines."""
         params = self.settings_panel.current_params()
         self.sim.set_params(params)
         self.sim.initialize()
@@ -175,38 +174,36 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Simulation error: {e}", 5000)
             return
 
-        # --- 最終結果 ---
+        # 左パネル：途中灰線 + 最終
         final = results["final"]["new"]
         xs, ys, phi = final["x"], final["y"], final["phi"]
         bh = getattr(params, "base_height", 0.0)
-        t_final = final["t_years"]
 
         self.sim_plot.ax.clear()
-
-        # --- 中間ポリラインを灰色で描画 ---
         for rec in results.get("records", []):
-            self.sim_plot.ax.plot(
-                rec["x"], rec["y"],
-                color="0.6", linewidth=0.8, alpha=0.6, zorder=1
-            )
-
-        # --- 最終ポリラインを赤青で描画 ---
+            self.sim_plot.ax.plot(rec["x"], rec["y"], color="0.6", linewidth=0.8, alpha=0.6, zorder=1)
         self.sim_plot.plot_polyline_with_phi(
-            xs, ys, phi,
-            clear=False,  # すでにax.clear()済み
-            shade_block_region=True,
-            block_level=bh,
-            show_vertices=False
+            xs, ys, phi, clear=False, shade_block_region=True, block_level=bh, show_vertices=False
         )
 
-        self.sim_plot.ax.set_title(f"Final time = {t_final:.2f} yr")
+        # 右パネル：HLG（あれば）を重ねる／無ければクリア
+        hlg = results.get("hlg", {}) or {}
+        times = hlg.get("t", []) or []
+        vals  = hlg.get("y", []) or []
+        if times and vals:
+            self.sl_plot.plot_hlg_series(times, vals)
+        else:
+            self.sl_plot.clear_hlg()
+
+        t_final = final.get("t_years", None)
+        if t_final is not None:
+            self.sim_plot.ax.set_title(f"Final time = {t_final:.2f} yr")
         self.sim_plot.canvas.draw_idle()
 
         self.statusBar().showMessage(
-            f"Simulation finished. Recorded {len(results.get('records', []))} steps.",
+            f"Simulation finished. Recorded {len(results.get('records', []))} steps; HLG points: {len(times)}.",
             4000
         )
-
 
     @Slot()
     def _initialize_sim(self) -> None:
@@ -245,7 +242,11 @@ class MainWindow(QMainWindow):
             xs, ys, meta = read_sea_level_csv(path)
             if not xs:
                 raise ValueError("No valid numeric rows were found.")
+            # 右パネル：まず海水準だけ描く
             self.sl_plot.plot_curve(xs, ys, meta)
+            # HLGはまだ無いのでクリア（描画を邪魔しない）
+            self.sl_plot.clear_hlg()
+
             # NEW: シミュレーションへ海水準曲線を登録
             try:
                 self.sim.set_sea_level_curve(xs, ys)  # xs=year, ys=sea-level[m]
