@@ -24,41 +24,29 @@
     <Compile Include="microatoll_GUI.py" />
     <Compile Include="src\gui\main_window.py" />
     <Compile Include="src\gui\plot_interactions.py" />
+    <Compile Include="src\gui\setting_panel.py" />
     <Compile Include="src\gui\sim_plot.py" />
     <Compile Include="src\gui\sl_plot.py" />
     <Compile Include="src\gui\__init__.py" />
     <Compile Include="src\io_interface\csvio.py" />
+    <Compile Include="src\io_interface\jsonio.py" />
     <Compile Include="src\io_interface\__init__.py" />
+    <Compile Include="src\models\polyline.py" />
+    <Compile Include="src\models\__init__.py" />
+    <Compile Include="src\simulator\polyline_utils.py" />
     <Compile Include="src\simulator\simulator.py" />
+    <Compile Include="src\simulator\test_engine.py" />
     <Compile Include="src\simulator\__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
     <Folder Include="src\gui\" />
-    <Folder Include="src\gui\__pycache__\" />
     <Folder Include="src\io_interface\" />
-    <Folder Include="src\io_interface\__pycache__\" />
-    <Folder Include="src\microatoll_sim_suite.egg-info\" />
+    <Folder Include="src\models\" />
     <Folder Include="src\simulator\" />
-    <Folder Include="src\simulator\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="src\gui\__pycache__\main_window.cpython-312.pyc" />
-    <Content Include="src\gui\__pycache__\plot_interactions.cpython-312.pyc" />
-    <Content Include="src\gui\__pycache__\sim_plot.cpython-312.pyc" />
-    <Content Include="src\gui\__pycache__\sl_plot.cpython-312.pyc" />
-    <Content Include="src\gui\__pycache__\__init__.cpython-312.pyc" />
-    <Content Include="src\io_interface\__pycache__\csvio.cpython-312.pyc" />
-    <Content Include="src\io_interface\__pycache__\__init__.cpython-312.pyc" />
-    <Content Include="src\microatoll_sim_suite.egg-info\dependency_links.txt" />
-    <Content Include="src\microatoll_sim_suite.egg-info\entry_points.txt" />
-    <Content Include="src\microatoll_sim_suite.egg-info\PKG-INFO" />
-    <Content Include="src\microatoll_sim_suite.egg-info\requires.txt" />
-    <Content Include="src\microatoll_sim_suite.egg-info\SOURCES.txt" />
-    <Content Include="src\microatoll_sim_suite.egg-info\top_level.txt" />
     <Content Include="pyproject.toml" />
-    <Content Include="src\simulator\__pycache__\simulator.cpython-312.pyc" />
-    <Content Include="src\simulator\__pycache__\__init__.cpython-312.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

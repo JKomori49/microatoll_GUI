@@ -4,110 +4,27 @@ import logging
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
 
 from pathlib import Path
-from typing import Any, Dict, List
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QApplication,
-    QDoubleSpinBox,
-    QFormLayout,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QPushButton,
-    QSpinBox,
-    QSplitter,
-    QStatusBar,
-    QToolBar,
-    QVBoxLayout,
-    QWidget,
-    QFileDialog,
-    QMessageBox,
+    QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow,
+    QSplitter, QStatusBar, QToolBar, QVBoxLayout, QWidget,
+    QFileDialog, QMessageBox,
 )
 
-# --- 追加：分離した描画ウィジェット ---
+# --- 描画ウィジェット ---
 from gui.sl_plot import SeaLevelPlot
 from gui.sim_plot import SimPlot
 
-# 絶対インポート（既存）
+# --- 設定パネル（分離ファイル） ---
+from gui.setting_panel import SettingsPanel
+
+# --- シミュレータとパラメータ ---
 from simulator.simulator import Simulator, SimParams
-from io_interface import read_sea_level_csv  # moved here
 
-
-# ---------------- Bottom Settings Panel ----------------
-class SettingsPanel(QWidget):
-    """Bottom: interactive settings editor. Emits parametersChanged."""
-
-    parametersChanged = Signal(SimParams)
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-
-        self.growth = QDoubleSpinBox()
-        self.growth.setRange(0.0, 50.0)
-        self.growth.setDecimals(2)
-        self.growth.setValue(8.0)
-        self.growth.setSuffix(" mm/yr")
-
-        self.tidal = QDoubleSpinBox()
-        self.tidal.setRange(0.0, 10.0)
-        self.tidal.setDecimals(2)
-        self.tidal.setValue(2.7)
-        self.tidal.setSuffix(" m")
-
-        self.max_elev = QDoubleSpinBox()
-        self.max_elev.setRange(0.0, 10.0)
-        self.max_elev.setDecimals(3)
-        self.max_elev.setValue(1.5)
-        self.max_elev.setSuffix(" m")
-
-        self.dt = QDoubleSpinBox()
-        self.dt.setRange(0.01, 10.0)
-        self.dt.setDecimals(2)
-        self.dt.setValue(0.1)
-        self.dt.setSuffix(" yr")
-
-        self.steps = QSpinBox()
-        self.steps.setRange(1, 10_000)
-        self.steps.setValue(50)
-
-        self.apply_btn = QPushButton("Apply")
-        self.run_btn = QPushButton("Run")
-
-        form = QFormLayout()
-        form.addRow("Growth rate:", self.growth)
-        form.addRow("Tidal range:", self.tidal)
-        form.addRow("Max elevation:", self.max_elev)
-        form.addRow("Δt:", self.dt)
-        form.addRow("Steps:", self.steps)
-
-        buttons = QHBoxLayout()
-        buttons.addStretch(1)
-        buttons.addWidget(self.apply_btn)
-        buttons.addWidget(self.run_btn)
-
-        root = QVBoxLayout(self)
-        root.addLayout(form)
-        root.addLayout(buttons)
-
-        self.apply_btn.clicked.connect(self._emit_params)
-        for w in (self.growth, self.tidal, self.max_elev, self.dt, self.steps):
-            w.editingFinished.connect(self._emit_params)
-
-    def current_params(self) -> SimParams:
-        return SimParams(
-            growth_rate_mm_yr=float(self.growth.value()),
-            tidal_range_m=float(self.tidal.value()),
-            max_elevation_m=float(self.max_elev.value()),
-            dt_years=float(self.dt.value()),
-            n_steps=int(self.steps.value()),
-        )
-
-    @Slot()
-    def _emit_params(self) -> None:
-        self.parametersChanged.emit(self.current_params())
+# CSV I/O
+from io_interface import read_sea_level_csv
 
 
 # ---------------- Main Window ----------------
@@ -125,7 +42,7 @@ class MainWindow(QMainWindow):
     """
     Layout:
       - Top: horizontal splitter (left: SimPlot, right: SeaLevelPlot)
-      - Bottom: interactive settings panel
+      - Bottom: interactive settings panel (SettingsPanel)
     """
 
     def __init__(self) -> None:
@@ -146,14 +63,19 @@ class MainWindow(QMainWindow):
         run_action.setShortcut("Ctrl+R")
         run_action.triggered.connect(self._run_sim)
 
+        init_action = QAction("Initialize", self)
+        init_action.setShortcut("Ctrl+Shift+R")
+        init_action.triggered.connect(self._initialize_sim)
+
         import_csv_action = QAction("Import CSV…", self)
         import_csv_action.setShortcut("Ctrl+I")
         import_csv_action.triggered.connect(self._import_csv)
-        
+
         debug_circles_action = QAction("Draw Concentric Circles", self)
         debug_circles_action.triggered.connect(self._draw_debug_circles)
 
         file_menu = self.menuBar().addMenu("&File")
+        file_menu.addAction(init_action)
         file_menu.addAction(run_action)
         file_menu.addAction(import_csv_action)
         file_menu.addSeparator()
@@ -164,6 +86,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(quit_action)
 
         tb = QToolBar("Main", self)
+        tb.addAction(init_action)
         tb.addAction(run_action)
         tb.addAction(import_csv_action)
         tb.addAction(debug_circles_action)
@@ -181,6 +104,7 @@ class MainWindow(QMainWindow):
 
         self.settings_panel.parametersChanged.connect(self._on_params_changed)
         self.settings_panel.run_btn.clicked.connect(self._run_sim)
+        self.settings_panel.init_btn.clicked.connect(self._initialize_sim) 
 
         top_split = QSplitter(Qt.Horizontal)
         top_split.addWidget(self._wrap_panel(self.sim_plot, "Simulation (Distance–Elevation)"))
@@ -215,12 +139,12 @@ class MainWindow(QMainWindow):
         """
         右（CSV）→ 左（Sim）へ:
           - yRangeChanged: 数値範囲の共有
-          - yMappingChanged: 上下余白（ピクセル）も含めた描画マッピング共有
+          - yGeometryChanged: 上下余白（ピクセル）も含めた描画マッピング共有
         """
         self.sl_plot.yRangeChanged.connect(self.sim_plot.set_y_range)
         self.sl_plot.yGeometryChanged.connect(self.sim_plot.apply_right_geometry)
 
-        # 左→右（新規：双方向操作対応）
+        # 左→右（双方向操作対応）
         self.sim_plot.yRangeEdited.connect(self._apply_y_from_left)
 
     @Slot(float, float)
@@ -236,19 +160,57 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _run_sim(self) -> None:
-        """
-        ここでは例として、距離-高度のダミー曲線を描画。
-        後でSimulatorの距離プロファイル出力に差し替えてください。
-        """
-        results = self.sim.run()
-        # 仮のx（距離）を生成：ステップ数に合わせて0..N
-        n = max(2, len(results.get("height_m", [])))
-        xs = list(range(n))
-        zs = results.get("height_m", [0.0] * n)
+        """Advance exactly one time step and draw old/new polylines together."""
+        # 1) パラメータ反映（T0, Δt, gr, BH など）
+        params = self.settings_panel.current_params()
+        self.sim.set_params(params)
+        bh = getattr(params, "base_height", 0.0)
 
-        self.sim_plot.plot_sim_profile(xs, zs, label="latest run", clear=True)
-        # 右側CSVが未読の場合でも、すでに共有yが決まっていればSimPlotはそれを保持
-        self.statusBar().showMessage("Simulation finished", 2000)
+        # 2) 1ステップ進める
+        results = self.sim.step_once()
+        old = results["old"]; new = results["new"]
+
+        # 3) 描画（旧=細線、新=φ色分け + y<BHをシェード）
+        if hasattr(self.sim_plot, "plot_polyline_step"):
+            self.sim_plot.plot_polyline_step(
+                (old["x"], old["y"]),
+                (new["x"], new["y"]),
+                new_phi=new["phi"],
+                block_level=bh,
+                show_vertices=True,
+                clear=True,
+            )
+        else:
+            # フォールバック（新だけプロット）
+            self.sim_plot.plot_polyline_with_phi(new["x"], new["y"], new["phi"], clear=True, shade_block_region=True, block_level=bh)
+
+        # 進行状況表示（t と τ）
+        self.statusBar().showMessage(f"Step τ={new['tau']}  |  t={new['t_years']:.3f} yr", 2500)
+
+
+    @Slot()
+    def _initialize_sim(self) -> None:
+        """
+        現在のパラメータで τ=0 の初期ポリラインを生成して描画（ステップは進めない）。
+        """
+        # 1) パラメータ反映
+        params = self.settings_panel.current_params()
+        self.sim.set_params(params)
+        bh = getattr(params, "base_height", 0.0)
+
+        # 2) 初期化（tau=0）
+        cur = self.sim.initialize()  # {"x","y","phi","tau","t_years"}
+
+        # 3) 描画（初期のみ：細線不要／φ色分け + y<BHシェード）
+        if hasattr(self.sim_plot, "plot_polyline_with_phi"):
+            self.sim_plot.plot_polyline_with_phi(
+                cur["x"], cur["y"], cur["phi"],
+                clear=True, shade_block_region=True, block_level=bh
+            )
+        else:
+            self.sim_plot.plot_sim_profile(cur["x"], cur["y"], label="initial polyline", clear=True)
+
+        self.statusBar().showMessage(f"Initialized: τ={cur['tau']} | t={cur['t_years']:.3f} yr", 2500)
 
     @Slot()
     def _import_csv(self) -> None:
@@ -267,7 +229,7 @@ class MainWindow(QMainWindow):
             self._last_dir = Path(path).parent
             self.statusBar().showMessage(f"Imported: {Path(path).name}", 2500)
 
-            # CSVのy範囲を左へ同期（signalでも飛ぶが明示的にもう一度適用しておく）
+            # CSVのy範囲を左へ同期（signalでも飛ぶが明示的にもう一度適用）
             yr = self.sl_plot.current_y_range()
             if yr:
                 self.sim_plot.set_y_range(*yr)
@@ -275,8 +237,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Import Error", f"Failed to read CSV:\n{e}")
             self.statusBar().showMessage("Import failed", 2500)
 
-
-    # NEW: handler
+    @Slot()
     def _draw_debug_circles(self) -> None:
         """
         Draw concentric circles on the left panel.
@@ -284,6 +245,7 @@ class MainWindow(QMainWindow):
         """
         self.sim_plot.draw_concentric_circles(max_radius=None, center=(0.0, 0.0), clear=True)
         self.statusBar().showMessage("Drew concentric circles (debug)", 2000)
+
 
 # ---- Entrypoint ---------------------------------------------
 def launch() -> None:
