@@ -1,3 +1,4 @@
+README.md
 pyproject.toml
 microatoll_GUI/src/microatoll_sim_suite.egg-info/PKG-INFO
 microatoll_GUI/src/microatoll_sim_suite.egg-info/SOURCES.txt
@@ -14,7 +15,12 @@ microatoll_GUI/src/gui/sl_plot.py
 microatoll_GUI/src/io_interface/__init__.py
 microatoll_GUI/src/io_interface/csvio.py
 microatoll_GUI/src/io_interface/jsonio.py
+microatoll_GUI/src/microatoll_sim_suite.egg-info/PKG-INFO
 microatoll_GUI/src/microatoll_sim_suite.egg-info/SOURCES.txt
+microatoll_GUI/src/microatoll_sim_suite.egg-info/dependency_links.txt
+microatoll_GUI/src/microatoll_sim_suite.egg-info/entry_points.txt
+microatoll_GUI/src/microatoll_sim_suite.egg-info/requires.txt
+microatoll_GUI/src/microatoll_sim_suite.egg-info/top_level.txt
 microatoll_GUI/src/models/__init__.py
 microatoll_GUI/src/models/polyline.py
 microatoll_GUI/src/simulator/__init__.py

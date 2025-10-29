@@ -54,7 +54,7 @@ class SeaLevelPlot(QWidget):
         self.ax.plot(xs, ys, linewidth=0.8, label="Sea level")
         self.ax.grid(True, alpha=0.3)
         name = meta.get("name") or meta.get("filename") or "Sea-level CSV"
-        self.ax.set_title(f"{name}  (rows: {len(xs)}, skipped: {meta.get('skipped_rows', 0)})")
+        #self.ax.set_title(f"{name}  (rows: {len(xs)}, skipped: {meta.get('skipped_rows', 0)})")
         self.ax.legend(loc="best")
 
         ymin = min(ys) if ys else -1.0
@@ -103,7 +103,7 @@ class SeaLevelPlot(QWidget):
         if self._hlg_line is None:
             (self._hlg_line,) = self.ax.plot(
                 ts, ys, linestyle="-", linewidth=1.0,
-                color="0.35", alpha=0.9, label="HLG (recorded)"
+                color="0.35", alpha=0.9, label="_nolegend_"
             )
         else:
             self._hlg_line.set_data(ts, ys)
@@ -167,7 +167,7 @@ class SeaLevelPlot(QWidget):
         self.ax.grid(True, alpha=0.3)
         self.ax.set_xlabel("Time / Age / Year")
         self.ax.set_ylabel("Sea level / Elevation (m)")
-        self.ax.set_title("No CSV loaded")
+        self.ax.set_title("No Sea level curve loaded: Import CSV")
         self.canvas.draw_idle()
 
     def _broadcast_geometry(self) -> None:

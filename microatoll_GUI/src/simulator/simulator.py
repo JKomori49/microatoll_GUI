@@ -26,7 +26,8 @@ class SimParams:
     t1_years: float = 100.0   # end time
     record_every_years: float = 0.0  # 0 = 記録しない
     vertex_spacing_m: float = 0.05
-    resample_each_step: bool = True  # 追加: 毎ステップのリサンプリングON/OFF
+    resample_each_step: bool = True  # 毎ステップのリサンプリングON/OFF
+    initial_size_m: float = 0.2 
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -90,13 +91,40 @@ class Simulator:
             return None  # データ点なし → ブロックしない
 
         return float(np.min(self._sl_h[mask]))
+    
+    # ---- init shape helper: upper semicircle closed with chord ----
+    @staticmethod
+    def _upper_semicircle_closed(spacing: float, radius: float) -> tuple[np.ndarray, np.ndarray]:
+        """
+        上半分の半円（-π..0 もしくは 0..π）を弧として生成し、左右端を直線（弦）で結んで閉曲線にする。
+        返り値: (x, y)  ※ 中心は (0, 0)。呼び出し側で BH を加算してシフトする。
+        """
+        r = float(radius)
+        s = max(float(spacing), 1e-6)
+
+        # 弧の長さ: πr、点数はおおよそ等間隔になるよう算出
+        n_arc = max(16, int(np.ceil((np.pi * r) / s)))
+        # 角度 0..π（上半分）で CCW
+        theta = np.linspace(0.0, np.pi, n_arc, endpoint=True)
+        x_arc = r * np.cos(theta)         # x: +R → -R
+        y_arc = r * np.sin(theta)         # y: 0 → +R
+
+        # 弦（直線）で右端(-R,0) → 左端(+R,0) を結ぶ
+        # 弦の長さ: 2R、点数
+        n_chord = max(4, int(np.ceil((2.0 * r) / s)))
+        x_chord = np.linspace(-r, r, n_chord, endpoint=False)  # endpoint=False で重複点回避（弧の始点が -r,0）
+        y_chord = np.zeros_like(x_chord)
+
+        x = np.concatenate([x_arc, x_chord])
+        y = np.concatenate([y_arc, y_chord])
+        return x, y
 
     # ---- init / state ----
     def _ensure_initialized(self) -> None:
         if self._state:
             return
         p = self.params
-        x, y = circle_by_spacing(p.vertex_spacing_m, radius=0.2)
+        x, y = self._upper_semicircle_closed(p.vertex_spacing_m, p.initial_size_m)
         y = y + float(p.base_height)
         # τ=0 時刻での海水準を取得
         t_init = float(p.t0_years) + float(p.dt_years) * 0
@@ -106,7 +134,7 @@ class Simulator:
 
     def initialize(self) -> Dict[str, Any]:
         p = self.params
-        x, y = circle_by_spacing(p.vertex_spacing_m, radius=0.2)
+        x, y = self._upper_semicircle_closed(p.vertex_spacing_m, p.initial_size_m)
         y = y + float(p.base_height)
         t_init = float(p.t0_years)
         H = self._sea_level_at(t_init)
