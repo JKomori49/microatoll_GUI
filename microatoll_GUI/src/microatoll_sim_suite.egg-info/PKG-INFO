@@ -7,6 +7,7 @@ License: MIT
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: PySide6>=6.6
+Requires-Dist: numpy>=1.26
 Requires-Dist: matplotlib>=3.8
 Provides-Extra: dev
 Requires-Dist: ruff>=0.5; extra == "dev"

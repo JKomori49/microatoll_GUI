@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
 
 from pathlib import Path
@@ -8,7 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow,
+    QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow, QSizePolicy,
     QSplitter, QStatusBar, QToolBar, QVBoxLayout, QWidget,
     QFileDialog, QMessageBox,
 )
@@ -29,12 +30,12 @@ from io_interface import read_sea_level_csv
 
 # ---------------- Main Window ----------------
 APP_QSS = """
-QMainWindow { background: #121212; }
-QLabel[class='panelHeader'] { font-weight: 600; padding: 6px 8px; }
-QLabel[class='panelTitle'] { font-weight: 600; }
-QFrame#panelFrame { border: 1px solid #2a2a2a; border-radius: 6px; }
-QToolBar { border: none; }
-QStatusBar { color: #bbb; }
+QMainWindow { background: palette(Window); } 
+QLabel[class="panelHeader"] { font-weight: 600; padding: 6px 8px; color: palette(WindowText); }
+QLabel[class="panelTitle"]  { font-weight: 600; color: palette(WindowText); }
+QFrame#panelFrame { border: 1px solid palette(Mid); border-radius: 6px; } 
+QToolBar  { border: none; background: palette(Window); }
+QStatusBar{ color: palette(WindowText); background: palette(Window); }
 """
 
 
@@ -47,7 +48,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("MicroAtoll Growth Simulator")
+        self.setWindowTitle("Microatoll Growth Simulator")
         self.resize(1200, 800)
 
         self.sim = Simulator()
@@ -71,15 +72,11 @@ class MainWindow(QMainWindow):
         import_csv_action.setShortcut("Ctrl+I")
         import_csv_action.triggered.connect(self._import_csv)
 
-        debug_circles_action = QAction("Draw Concentric Circles", self)
-        debug_circles_action.triggered.connect(self._draw_debug_circles)
-
         file_menu = self.menuBar().addMenu("&File")
         file_menu.addAction(init_action)
         file_menu.addAction(run_action)
         file_menu.addAction(import_csv_action)
         file_menu.addSeparator()
-        file_menu.addAction(debug_circles_action)
         quit_action = QAction("Quit", self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
@@ -89,7 +86,6 @@ class MainWindow(QMainWindow):
         tb.addAction(init_action)
         tb.addAction(run_action)
         tb.addAction(import_csv_action)
-        tb.addAction(debug_circles_action)
         self.addToolBar(tb)
 
         self.setStatusBar(QStatusBar(self))
@@ -104,24 +100,63 @@ class MainWindow(QMainWindow):
 
         self.settings_panel.parametersChanged.connect(self._on_params_changed)
         self.settings_panel.run_btn.clicked.connect(self._run_sim)
-        self.settings_panel.init_btn.clicked.connect(self._initialize_sim) 
+        self.settings_panel.init_btn.clicked.connect(self._initialize_sim)
 
+        # --- 上段（左右） ---
         top_split = QSplitter(Qt.Horizontal)
-        top_split.addWidget(self._wrap_panel(self.sim_plot, "Simulation (Distance–Elevation)"))
-        top_split.addWidget(self._wrap_panel(self.sl_plot, "Sea-level (CSV)"))
+
+        left_frame  = self._wrap_panel(self.sim_plot, "Simulation (Distance–Elevation)")
+        right_frame = self._wrap_panel(self.sl_plot, "Sea-level (CSV)")
+
+        # ★ 最低高さを確保（起動直後に潰れない）
+        MIN_TOP_H = 260
+        left_frame.setMinimumHeight(MIN_TOP_H)
+        right_frame.setMinimumHeight(MIN_TOP_H)
+
+        # 念のため拡張ポリシー（縦横ともに広がる）
+        for fr in (left_frame, right_frame):
+            fr.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        top_split.addWidget(left_frame)
+        top_split.addWidget(right_frame)
         top_split.setSizes([3, 2])
+        # ★ 子どもをつぶせないように
+        top_split.setChildrenCollapsible(False)
 
+        # --- 下段（設定） ---
         bottom_frame = self._wrap_panel(self.settings_panel, "Interactive Settings")
+        bottom_frame.setMinimumHeight(160)  # 設定パネルが大きくなりすぎないよう最低限だけ
 
+        # --- 縦割りスプリッタ ---
         vert_split = QSplitter(Qt.Vertical)
         vert_split.addWidget(top_split)
         vert_split.addWidget(bottom_frame)
-        vert_split.setSizes([2, 1])
+
+        # ★ 比率は上段:下段 = 3:1（初期サイズ）
+        vert_split.setStretchFactor(0, 3)
+        vert_split.setStretchFactor(1, 1)
+        # ★ こちらもつぶれ防止
+        vert_split.setChildrenCollapsible(False)
+
+        # 初期サイズ（ウィンドウの想定サイズに基づく目安）
+        vert_split.setSizes([int(self.height() * 0.66), int(self.height() * 0.34)])
 
         central = QWidget()
         lay = QVBoxLayout(central)
         lay.addWidget(vert_split)
         self.setCentralWidget(central)
+
+        # 後で参照できるよう保持（任意）
+        self._top_split = top_split
+        self._vert_split = vert_split
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        if not getattr(self, "_did_initial_split_sizes", False):
+            self._did_initial_split_sizes = True
+            # 実際の表示高さに基づいて再配分
+            h = max(1, self.centralWidget().height())
+            self._vert_split.setSizes([int(h * 0.66), int(h * 0.34)])
 
     def _wrap_panel(self, w: QWidget, title: str) -> QFrame:
         frame = QFrame()
@@ -247,6 +282,11 @@ class MainWindow(QMainWindow):
             # HLGはまだ無いのでクリア（描画を邪魔しない）
             self.sl_plot.clear_hlg()
 
+            # Set T0/T1 from the first/last time values (floored)
+            t0 = math.floor(xs[0])
+            t1 = math.floor(xs[-1])
+            self.settings_panel.set_time_window(t0, t1)
+
             # NEW: シミュレーションへ海水準曲線を登録
             try:
                 self.sim.set_sea_level_curve(xs, ys)  # xs=year, ys=sea-level[m]
@@ -262,15 +302,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Import Error", f"Failed to read CSV:\n{e}")
             self.statusBar().showMessage("Import failed", 2500)
-
-    @Slot()
-    def _draw_debug_circles(self) -> None:
-        """
-        Draw concentric circles on the left panel.
-        max_radius is inferred from shared y-range if available.
-        """
-        self.sim_plot.draw_concentric_circles(max_radius=None, center=(0.0, 0.0), clear=True)
-        self.statusBar().showMessage("Drew concentric circles (debug)", 2000)
 
 
 # ---- Entrypoint ---------------------------------------------

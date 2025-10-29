@@ -141,6 +141,19 @@ class SettingsPanel(QWidget):
             w.editingFinished.connect(self._emit_params)
         self.resolution.currentIndexChanged.connect(self._emit_params)
 
+    def set_time_window(self, t0: int, t1: int) -> None:
+        """Programmatically set T0/T1 (years) without firing multiple signals."""
+        # Temporarily block signals from widgets to avoid duplicate emits
+        self.t0.blockSignals(True)
+        self.t1.blockSignals(True)
+        try:
+            self.t0.setValue(int(t0))
+            self.t1.setValue(int(t1))
+        finally:
+            self.t0.blockSignals(False)
+            self.t1.blockSignals(False)
+        # Emit once with updated params so upper layers stay in sync
+        self._emit_params()
 
     # ---- Public API ----
     def current_params(self) -> SimParams:
