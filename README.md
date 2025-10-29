@@ -10,10 +10,12 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 
 ### 🖥️ Visual Studio Code (Recommended)
 
-#### 1. Buiild a Python environment
+#### STEP 1. Buiild a Python environment
 
 > **If you don’t have a Python environment yet (install from scratch):**  
 > Follow the steps below to set up Visual Studio Code and Python together.
+> **If you are already an experienced Python user:**
+> Just do clone this repository (https://github.com/JKomori49/microatoll_GUI.gui) in your environment and jump to step 3.
 
 1. **Install [Visual Studio Code](https://code.visualstudio.com/)**
 
@@ -49,7 +51,7 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 			```
 		- Relaunch VS code once installation is completed
 	- If you cannot install git via command line, go [git website](https://git-scm.com/install/) and download installer.
-#### 2. Clone the Repository from GitHub
+#### Step 2. Clone the Repository from GitHub
 1. **Launch Visual Studio Code**
 2. **Open the Command Palette**  
 	- Press **`Ctrl + Shift + P`** (Windows/Linux)
@@ -66,11 +68,14 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 7. **Open the cloned folder**  
 	- When prompted “Open cloned repository?”, click **Open**
 
-#### 3. Install the Simulator Package
+#### Step 3. Install the Simulator Package
 1. Open the integrated terminal:
 	-  [View -> Terminal] or Press **```Ctrl + Shift + ` ```**
-
 2. Run:
 	```bash
 	pip install -e .
+	```
+3. Once Installation is complete, start Microatoll Simulator by typing:
+	```bash
+	microatoll-sim
 	```
