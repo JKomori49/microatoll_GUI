@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 # SimParams はシミュレーション側の定義を参照
 from simulator.simulator import SimParams
 
-RES_SPACING_M = {"High": 0.005, "Medium": 0.01, "Low": 0.02}
+RES_SPACING_M = {"Very Fine": 0.001, "Fine": 0.002, "Medium": 0.005, "Coarse": 0.01, "Very Coarse": 0.02}
 
 
 class SettingsPanel(QWidget):
@@ -32,8 +32,8 @@ class SettingsPanel(QWidget):
         # --- Widgets ---
         # 解像度（頂点間隔）
         self.resolution = QComboBox()
-        self.resolution.addItems(["High", "Medium", "Low"])
-        self.resolution.setCurrentText("Low")
+        self.resolution.addItems(["Very Fine", "Fine", "Medium", "Coarse", "Very Coarse"])
+        self.resolution.setCurrentText("Medium")
 
         self.growth = QDoubleSpinBox()
         self.growth.setRange(0.0, 50.0)
@@ -50,13 +50,13 @@ class SettingsPanel(QWidget):
 
         self.t0 = QDoubleSpinBox()
         self.t0.setRange(-1e9, 1e9)
-        self.t0.setDecimals(1)
+        self.t0.setDecimals(2)
         self.t0.setValue(0.0)
         self.t0.setSuffix(" yr")
 
         self.t1 = QDoubleSpinBox()
         self.t1.setRange(-1e9, 1e9)
-        self.t1.setDecimals(1)
+        self.t1.setDecimals(2)
         self.t1.setValue(25.0)
         self.t1.setSuffix(" yr")
 
