@@ -26,6 +26,7 @@ from .setting_panel import SettingsPanel
 
 # --- シミュレータとパラメータ ---
 from microatoll_gui.simulator.simulator import Simulator, SimParams
+from microatoll_gui.simulator.iteration import IterativeRunner
 
 # CSV I/O
 from microatoll_gui.io_interface import read_sea_level_csv
@@ -222,7 +223,6 @@ class MainWindow(QMainWindow):
         self.sim.initialize()
 
         try:
-            from simulator.iteration import IterativeRunner
             runner = IterativeRunner(self.sim)
             results = runner.run_until_end()
         except Exception as e:
