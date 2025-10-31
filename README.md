@@ -1,8 +1,8 @@
 # 🌊 Microatoll Simulator (GUI Version)
 
-A graphical simulator for coral microatoll growth and sea-level reconstruction.
+Microatoll Growth Simulator provides an interactive GUI application for coral microatoll growth and sea-level reconstruction.
 
-![thumbnail](microatoll_GUI/src/resources/readme/Result02_900px.jpg)
+![thumbnail](src/microatoll_gui/resources/readme/Result02_900px.jpg)
 
 ---
 
@@ -16,7 +16,7 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 > Follow the steps below to set up Visual Studio Code and Python together.
 
 > **If you are already an experienced Python user:**
-> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.git) in your environment and jump to [STEP 3](■STEP-3.-Install-the-Simulator-Package).
+> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.git) in your environment and jump to [STEP 3](#step-3-install-the-simulator-package).
 
 1. **Install [Visual Studio Code](https://code.visualstudio.com/)**
 
@@ -84,7 +84,7 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 ---
 ## 🥏 Microatoll Growth Simulator - User Manual
 ### ■ The Main Window
-![start window](microatoll_GUI/src/resources/readme/start_900px.jpg)
+![start window](src/microatoll_gui/resources/readme/start_900px.jpg)
 
 ### ■ 1. Load Sea-Level Data
 
@@ -122,7 +122,7 @@ The **Microatoll Growth Simulator** can simulate coral microatoll growth using s
 
 
 ### ■ 3. Run the Simulation
-![Result](microatoll_GUI/src/resources/readme/Result_900px.jpg)
+![Result](src/microatoll_gui/resources/readme/Result_900px.jpg)
 Click **Run** at the top or bottom of the window to start the calculation.  
 After the computation is complete, results will automatically appear:
 - The left panel shows the simulated coral cross-section (growth bands).
@@ -136,5 +136,4 @@ After the computation is complete, results will automatically appear:
 
 ### ■ 4. Export Results
 
-After adjusting the desired display range,  
-you can export the figures from **Export** as PNG or SVG files.
+After adjusting the display range, figures can be exported from **Export** as PNG or SVG files.
