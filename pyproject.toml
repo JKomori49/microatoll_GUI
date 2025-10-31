@@ -25,7 +25,7 @@ microatoll-sim = "microatoll_gui.__main__:main"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["microatoll_GUI/src"]
+where = ["src"]
 
 [project.optional-dependencies]
 dev = [
