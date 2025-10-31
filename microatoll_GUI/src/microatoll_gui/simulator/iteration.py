@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 import math
 import numpy as np
 
-from simulator.simulator import Simulator
+from .simulator import Simulator
 
 class IterativeRunner:
     """

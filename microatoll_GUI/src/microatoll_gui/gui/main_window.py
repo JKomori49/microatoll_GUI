@@ -18,17 +18,17 @@ from PySide6.QtWidgets import (
 )
 
 # --- 描画ウィジェット ---
-from gui.sl_plot import SeaLevelPlot
-from gui.sim_plot import SimPlot
+from .sl_plot import SeaLevelPlot
+from .sim_plot import SimPlot
 
 # --- 設定パネル（分離ファイル） ---
-from gui.setting_panel import SettingsPanel
+from .setting_panel import SettingsPanel
 
 # --- シミュレータとパラメータ ---
-from simulator.simulator import Simulator, SimParams
+from microatoll_gui.simulator.simulator import Simulator, SimParams
 
 # CSV I/O
-from io_interface import read_sea_level_csv
+from microatoll_gui.io_interface import read_sea_level_csv
 
 
 # ---------------- Main Window ----------------

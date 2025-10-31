@@ -4,8 +4,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
-from gui.main_window import launch
-from io_interface.paths import resource_path
+from .gui.main_window import launch
+from .io_interface.paths import resource_path
 
 
 icon_path = resource_path("resources/icons/app_icon.ico")
