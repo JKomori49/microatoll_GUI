@@ -1,4 +1,6 @@
 gui
 io_interface
+microatoll_gui
 models
+resources
 simulator

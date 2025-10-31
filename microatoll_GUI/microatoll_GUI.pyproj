@@ -30,6 +30,7 @@
     <Compile Include="src\gui\__init__.py" />
     <Compile Include="src\io_interface\csvio.py" />
     <Compile Include="src\io_interface\jsonio.py" />
+    <Compile Include="src\io_interface\paths.py" />
     <Compile Include="src\io_interface\__init__.py" />
     <Compile Include="src\models\polyline.py" />
     <Compile Include="src\models\__init__.py" />
@@ -38,16 +39,22 @@
     <Compile Include="src\simulator\simulator.py" />
     <Compile Include="src\simulator\test_engine.py" />
     <Compile Include="src\simulator\__init__.py" />
+    <Compile Include="src\microatoll_gui\__main__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
     <Folder Include="src\gui\" />
     <Folder Include="src\io_interface\" />
     <Folder Include="src\models\" />
+    <Folder Include="src\microatoll_gui\" />
+    <Folder Include="src\resources\" />
+    <Folder Include="src\resources\icons\" />
+    <Folder Include="src\resources\readme\" />
     <Folder Include="src\simulator\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md" />
+    <Content Include="src\resources\icons\app_icon.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

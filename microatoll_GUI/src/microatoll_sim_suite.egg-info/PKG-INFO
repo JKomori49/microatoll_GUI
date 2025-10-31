@@ -14,7 +14,7 @@ Requires-Dist: ruff>=0.5; extra == "dev"
 Requires-Dist: mypy>=1.8; extra == "dev"
 Requires-Dist: pytest>=7.4; extra == "dev"
 
-﻿# 🌊 Microatoll Simulator (GUI Version)
+# 🌊 Microatoll Simulator (GUI Version)
 
 A graphical simulator for coral microatoll growth and sea-level reconstruction.
 
@@ -32,7 +32,7 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 > Follow the steps below to set up Visual Studio Code and Python together.
 
 > **If you are already an experienced Python user:**
-> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.gui) in your environment and jump to step 3.
+> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.gui) in your environment and jump to [STEP 3](■STEP-3.-Install-the-Simulator-Package).
 
 1. **Install [Visual Studio Code](https://code.visualstudio.com/)**
 
@@ -76,15 +76,13 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 	- Press **`Ctrl + Shift + P`** (Windows/Linux)
 3. **Search for “Clone Repository”**  
 	- Type `Clone Repository` and select **“Git: Clone”** -> **“🐱Clone from GitHub”**
-4. **Sign in to GitHub**  
-	- If you are required to sign in to GitHub, select "Allow", sign in via browser, and "Authorize Visual-Studio-Code"
-5. **Enter the repository URL**
+4. **Enter the repository URL**
 	```
 	https://github.com/JKomori49/microatoll_GUI.gui
 	```
-6. **Choose a local folder**  
+5. **Choose a local folder**  
 	- Select where you want to save the project (e.g., `Documents\GitHub\`)
-7. **Open the cloned folder**  
+6. **Open the cloned folder**  
 	- When prompted “Open cloned repository?”, click **Open**
 
 #### ■STEP 3. Install the Simulator Package

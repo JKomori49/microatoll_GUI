@@ -1,8 +1,8 @@
-﻿# 🌊 Microatoll Simulator (GUI Version)
+# 🌊 Microatoll Simulator (GUI Version)
 
 A graphical simulator for coral microatoll growth and sea-level reconstruction.
 
-*insert GUI snapshot here*
+![thumbnail](microatoll_GUI/src/resources/readme/result02_900px.jpg)
 
 ---
 
@@ -16,13 +16,12 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 > Follow the steps below to set up Visual Studio Code and Python together.
 
 > **If you are already an experienced Python user:**
-> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.gui) in your environment and jump to step 3.
+> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.gui) in your environment and jump to [STEP 3](■STEP-3.-Install-the-Simulator-Package).
 
 1. **Install [Visual Studio Code](https://code.visualstudio.com/)**
 
 2. **Install [Python ≥3.10](https://www.python.org/downloads/)**  
-   During installation, make sure to check the box:  
-   **✅ “Add Python to PATH”**
+   During installation, make sure to check the box: **“Add Python to PATH”**
 
 3. **Launch VS Code and Install Git**  
    - When prompted, install the **Python Extension**
@@ -60,15 +59,13 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 	- Press **`Ctrl + Shift + P`** (Windows/Linux)
 3. **Search for “Clone Repository”**  
 	- Type `Clone Repository` and select **“Git: Clone”** -> **“🐱Clone from GitHub”**
-4. **Sign in to GitHub**  
-	- If you are required to sign in to GitHub, select "Allow", sign in via browser, and "Authorize Visual-Studio-Code"
-5. **Enter the repository URL**
+4. **Enter the repository URL**
 	```
 	https://github.com/JKomori49/microatoll_GUI.gui
 	```
-6. **Choose a local folder**  
+5. **Choose a local folder**  
 	- Select where you want to save the project (e.g., `Documents\GitHub\`)
-7. **Open the cloned folder**  
+6. **Open the cloned folder**  
 	- When prompted “Open cloned repository?”, click **Open**
 
 #### ■STEP 3. Install the Simulator Package
@@ -85,3 +82,58 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 	```
 
 ---
+## 🥏 Microatoll Growth Simulator - User Manual
+### ■ The Main Window
+![start window](microatoll_GUI/src/resources/readme/start_900px.jpg)
+
+### ■ 1. Load Sea-Level Data
+
+The **Microatoll Growth Simulator** can simulate coral microatoll growth using sea-level curve recorded in a CSV file.
+
+1. Prepare a CSV file containing time (year) vs. altitude as follows (sample data file is provided in `sample/`):
+
+	```csv
+	year,height
+	1980.07947,0.01
+	1980.16162,0.11
+	1980.2439,0.14
+	1980.32605,0.14
+	1980.4082,0.03
+	1980.49036,-0.1
+	1980.57263,-0.1
+	...
+	```
+2. Click **Import CSV…** and select your data file from the folder and **Open**.
+
+	The sea-level curve will be displayed on the right panel.
+
+### ■ 2. Set Parameters
+
+
+| Parameter               | Description                                                                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Polyline resolution** | Controls the density of computed vertices. A finer setting yields more accurate results but increases computation time.                  |
+| **Initial Size**        | Sets the radius of the initial coral shape.                                                                                              |
+| **Growth speed**        | Defines the annual vertical growth amount of coral.                                                                                        |
+| **Base Height**         | Sets the base elevation (seafloor level). The initial shape will be a semicircle centered at this height.                                |
+| **T0, T1**              | Start time (T0) and end time (T1) of the simulation. These are automatically set when loading sea-level data but can be edited manually. |
+| **Δt (Time step)**      | The interval of simulation steps. Smaller values produce more accurate results but require longer computation time.                      |
+| **Record every**        | The interval (in years) for displaying growth bands. Unless otherwise needed, displaying every year (1.00 yr) is recommended.                      |
+
+
+### ■ 3. Run the Simulation
+Click **Run** at the top or bottom of the window to start the calculation.  
+After the computation is complete, results will automatically appear:
+- The left panel shows the simulated coral cross-section (growth bands).
+- The right panel displays the sea-level curve and the HLG evolution through time.
+
+>🖱️ Mouse Controls:
+>
+>You can interactively adjust the view:
+>- Scroll wheel: Zoom in / out
+>- Right-click + drag: Pan the view
+
+### ■ 4. Export Results
+
+After adjusting the desired display range,  
+you can export the figures from **Export** as PNG or SVG files.

@@ -167,7 +167,7 @@ class SeaLevelPlot(QWidget):
         self.ax.grid(True, alpha=0.3)
         self.ax.set_xlabel("Time / Age / Year")
         self.ax.set_ylabel("Sea level / Elevation (m)")
-        self.ax.set_title("No Sea level curve loaded: Import CSV")
+        self.ax.set_title("No Sea level curve loaded")
         self.canvas.draw_idle()
 
     def _broadcast_geometry(self) -> None:

@@ -19,7 +19,7 @@ dependencies = [
   "matplotlib>=3.8"
 ]
 [project.scripts]
-microatoll-sim = "gui.main_window:launch"
+microatoll-sim = "microatoll_gui.__main__:main"
 
 [tool.setuptools]
 include-package-data = true

@@ -15,6 +15,8 @@ microatoll_GUI/src/gui/sl_plot.py
 microatoll_GUI/src/io_interface/__init__.py
 microatoll_GUI/src/io_interface/csvio.py
 microatoll_GUI/src/io_interface/jsonio.py
+microatoll_GUI/src/io_interface/paths.py
+microatoll_GUI/src/microatoll_gui/__main__.py
 microatoll_GUI/src/microatoll_sim_suite.egg-info/PKG-INFO
 microatoll_GUI/src/microatoll_sim_suite.egg-info/SOURCES.txt
 microatoll_GUI/src/microatoll_sim_suite.egg-info/dependency_links.txt
