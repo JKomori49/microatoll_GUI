@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 # SimParams はシミュレーション側の定義を参照
-from simulator.simulator import SimParams
+from microatoll_gui.simulator.simulator import SimParams
 
 RES_SPACING_M = {"Very Fine": 0.001, "Fine": 0.002, "Medium": 0.005, "Coarse": 0.01, "Very Coarse": 0.02}
 

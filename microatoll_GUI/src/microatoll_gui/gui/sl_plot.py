@@ -9,7 +9,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backend_bases import MouseButton
 from matplotlib.figure import Figure
 
-from gui.plot_interactions import SeaLevelInteractor
+from .plot_interactions import SeaLevelInteractor
 
 class SeaLevelPlot(QWidget):
     """
