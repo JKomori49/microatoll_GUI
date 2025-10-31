@@ -16,7 +16,7 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 > Follow the steps below to set up Visual Studio Code and Python together.
 
 > **If you are already an experienced Python user:**
-> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.gui) in your environment and jump to [STEP 3](■STEP-3.-Install-the-Simulator-Package).
+> Simply clone this repository (https://github.com/JKomori49/microatoll_GUI.git) in your environment and jump to [STEP 3](■STEP-3.-Install-the-Simulator-Package).
 
 1. **Install [Visual Studio Code](https://code.visualstudio.com/)**
 
@@ -61,7 +61,7 @@ A graphical simulator for coral microatoll growth and sea-level reconstruction.
 	- Type `Clone Repository` and select **“Git: Clone”** -> **“🐱Clone from GitHub”**
 4. **Enter the repository URL**
 	```
-	https://github.com/JKomori49/microatoll_GUI.gui
+	https://github.com/JKomori49/microatoll_GUI.git
 	```
 5. **Choose a local folder**  
 	- Select where you want to save the project (e.g., `Documents\GitHub\`)
