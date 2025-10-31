@@ -2,7 +2,7 @@
 
 A graphical simulator for coral microatoll growth and sea-level reconstruction.
 
-![thumbnail](microatoll_GUI/src/resources/readme/result02_900px.jpg)
+![thumbnail](microatoll_GUI/src/resources/readme/Result02_900px.jpg)
 
 ---
 
@@ -122,6 +122,7 @@ The **Microatoll Growth Simulator** can simulate coral microatoll growth using s
 
 
 ### ■ 3. Run the Simulation
+![Result](microatoll_GUI/src/resources/readme/Result_900px.jpg)
 Click **Run** at the top or bottom of the window to start the calculation.  
 After the computation is complete, results will automatically appear:
 - The left panel shows the simulated coral cross-section (growth bands).
