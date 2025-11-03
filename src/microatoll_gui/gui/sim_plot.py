@@ -170,9 +170,9 @@ class SimPlot(QWidget):
         clear: bool = True,
         shade_block_region: bool = True,
         block_level: float = 0.0,
-        show_vertices: bool = False,    # ← 追加
-        vertex_size: int = 18,          # ← 追加
-        vertex_alpha: float = 0.9,      # ← 追加
+        show_vertices: bool = False,    # show vertices
+        vertex_size: int = 18,          # vertex marker size
+        vertex_alpha: float = 0.9,      # vertex marker alpha
     ) -> None:
         import numpy as np
 
@@ -186,11 +186,11 @@ class SimPlot(QWidget):
             self.ax.clear()
             self._decorate_axes()
 
-        # まず描画範囲を決める（y範囲優先）
+        # Decide plotting range (prioritize y-range)
         pad = 0.1
         xmin, xmax = float(x.min()), float(x.max())
         ymin, ymax = float(y.min()), float(y.max())
-        # y範囲に少し余白
+        # Add a small margin to the y-range
         yr = ymax - ymin
         if yr <= 0:
             yr = 1.0
@@ -198,26 +198,26 @@ class SimPlot(QWidget):
         ymax_plot = ymax + pad * yr
         self.set_y_range(ymin_plot, ymax_plot)
 
-        # y<0 のシェード（薄いグレー）
+        # Shade y < block_level (light gray)
         if shade_block_region:
-            # 現在の描画範囲でシェード（axhspanで半平面）
+            # Shade the half-plane within current plot range
             self.ax.axhspan(ymin_plot, float(block_level), facecolor=(0.85, 0.85, 0.85), alpha=0.6, zorder=0)
 
-        # phi に基づく色分け
+        # Color by phi
         if phi is None:
-            # phi が無ければ単色（黒）で全体ライン
+            # If phi is None, draw single color (black)
             xy = np.column_stack([x, y])
-            xy = np.vstack([xy, xy[0]])  # 閉じる
+            xy = np.vstack([xy, xy[0]])  # close polygon
             self.ax.plot(xy[:, 0], xy[:, 1], linewidth=1.8, color="black", label="polyline")
         else:
             phi = np.asarray(list(phi), dtype=int)
             assert len(phi) == n, "phi length must match x,y length"
 
-            # ランレングス（連続区間）で色分けして線を引く（終点→始点のwrapも考慮）
+            # Color segments by run-length (consider wrap from end to start)
             def seg_color(val: int) -> str:
                 return "red" if int(val) == 1 else "blue"
 
-            # 区間端点のインデックスを取る
+            # Determine segment endpoints
             runs = []
             start = 0
             cur = phi[0]
@@ -226,23 +226,23 @@ class SimPlot(QWidget):
                     runs.append((start, i - 1, int(cur)))
                     start = i
                     cur = phi[i]
-            runs.append((start, n - 1, int(cur)))  # 最終ラン
+            runs.append((start, n - 1, int(cur)))  # final run
 
-            # wrap-around（最後と最初が同一色なら結合）
+            # Wrap-around (merge if last and first are the same color)
             if len(runs) > 1 and runs[0][2] == runs[-1][2]:
                 s0, e0, c0 = runs[0]
                 s1, e1, c1 = runs[-1]
-                # 結合して先頭に戻す
+                # Merge and rotate to the front
                 runs = [(s1, e0, c0)] + runs[1:-1]
 
-            # 各ランを描画（閉じポリラインを意識）
+            # Draw each run (closed polyline aware)
             for (s, e, c) in runs:
                 if s <= e:
                     xs_seg = x[s:e+1]
                     ys_seg = y[s:e+1]
                     self.ax.plot(xs_seg, ys_seg, linewidth=2.0, color=seg_color(c))
-                # ランの終端→次ランの始端のつなぎ目
-            # 最後の点→最初の点（閉じる）が同じ色なら線を引く
+                # segment junction
+            # If last and first colors match, draw closing line
             if runs:
                 last_e = runs[-1][1]
                 first_s = runs[0][0]
@@ -251,14 +251,14 @@ class SimPlot(QWidget):
                 if last_c == first_c:
                     self.ax.plot([x[last_e], x[first_s]], [y[last_e], y[first_s]], linewidth=2.0, color=seg_color(last_c))
                 else:
-                    # 色が変わる場合は、中央値色でつなぐ必要はないので、つなぎ線なし
+                    # Colors differ; no connecting line needed
                     pass
 
-        # 頂点ドット表示
+        # Draw vertex dots
         if show_vertices:
             self._plot_vertices(xs, ys, phi, size=vertex_size, alpha=vertex_alpha, zorder=5)
 
-        # 表示調整
+        # Adjust display
         self._enforce_equal_aspect()
         self._recompute_xlim_to_fill_height()
 
@@ -278,13 +278,13 @@ class SimPlot(QWidget):
         *,
         block_level: float = 0.0,
         clear: bool = True,
-        show_vertices: bool = False,     # ← 追加
-        vertex_size_new: int = 18,       # ← 追加
-        vertex_size_old: int = 10,       # ← 追加
-        vertex_alpha: float = 0.9,       # ← 追加
+        show_vertices: bool = False,     # show vertex markers
+        vertex_size_new: int = 18,       # new vertex size
+        vertex_size_old: int = 10,       # old vertex size
+        vertex_alpha: float = 0.9,       # vertex marker alpha
     ) -> None:
         """
-        旧ポリラインを細線、新ポリラインを φ 色分けで描画。y < BH を薄いグレーで表示。
+        Draw old polyline as a thin line, and new polyline colored by φ. Shade y < BH in light gray.
         """
         import numpy as np
 
@@ -297,27 +297,27 @@ class SimPlot(QWidget):
             self.ax.clear()
             self._decorate_axes()
 
-        # 表示範囲
+        # Display range
         xmin = float(min(x0.min(), x1.min())); xmax = float(max(x0.max(), x1.max()))
         ymin = float(min(y0.min(), y1.min())); ymax = float(max(y0.max(), y1.max()))
         pad = 0.1 * max(1e-6, ymax - ymin)
         ymin_plot, ymax_plot = ymin - pad, ymax + pad
         self.set_y_range(ymin_plot, ymax_plot)
 
-        # ブロック領域 y < BH のシェード
+        # Shade blocked region y < BH
         self.ax.axhspan(ymin_plot, float(block_level), facecolor=(0.85, 0.85, 0.85), alpha=0.6, zorder=0)
 
-        # 旧ポリライン（細線・グレー）
+        # Old polyline (thin gray)
         xy0 = np.column_stack([x0, y0])
         xy0 = np.vstack([xy0, xy0[0]])
         self.ax.plot(xy0[:, 0], xy0[:, 1], linewidth=1.0, color="0.5", label="previous")
 
-        # 旧頂点（灰の小ドット）
+        # Old vertices (small gray dots)
         if show_vertices:
             self._plot_vertices(x0, y0, phi=None, size=vertex_size_old, alpha=vertex_alpha, zorder=4, color="0.5")
 
 
-        # 新ポリライン（φ色分け）
+        # New polyline (color by φ)
         if new_phi is None:
             xy1 = np.column_stack([x1, y1])
             xy1 = np.vstack([xy1, xy1[0]])
@@ -327,7 +327,7 @@ class SimPlot(QWidget):
             n = len(phi)
             def seg_color(val: int) -> str:
                 return "red" if int(val) == 1 else "blue"
-            # ランに分割して線を引く（wrap対応）
+            # Split into runs and draw (wrap-aware)
             runs = []
             s = 0; cur = phi[0]
             for i in range(1, n):
@@ -340,13 +340,13 @@ class SimPlot(QWidget):
             for (s, e, c) in runs:
                 xs_seg = x1[s:e+1]; ys_seg = y1[s:e+1]
                 self.ax.plot(xs_seg, ys_seg, linewidth=2.0, color=seg_color(c))
-            # 閉じ線のつなぎ
+            # Close connecting line
             if runs:
                 e_last = runs[-1][1]; s_first = runs[0][0]
                 if runs[-1][2] == runs[0][2]:
                     self.ax.plot([x1[e_last], x1[s_first]], [y1[e_last], y1[s_first]], linewidth=2.0, color=seg_color(runs[-1][2]))
 
-        # 新頂点（φに応じた赤/青）
+        # New vertices (red/blue according to φ)
         if show_vertices:
             self._plot_vertices(x1, y1, phi=new_phi, size=vertex_size_new, alpha=vertex_alpha, zorder=6)
 
@@ -474,7 +474,7 @@ class SimPlot(QWidget):
         if not self._y_range:
             return
 
-        # 現在のレイアウト・ピクセル寸法
+        # Current layout pixel dimensions
         self.fig.canvas.draw()
         bbox = self.ax.get_window_extent()
         dpr = float(getattr(self.canvas, "devicePixelRatioF", lambda: 1.0)())
@@ -497,7 +497,7 @@ class SimPlot(QWidget):
         self._enforce_equal_aspect()
 
 
-    # SimPlot クラス内に追加
+    # Added within SimPlot class
     def _plot_vertices(
         self,
         xs,
@@ -510,9 +510,9 @@ class SimPlot(QWidget):
         color=None,
     ) -> None:
         """
-        頂点を散布図で表示。
-        - phi が None の場合は単色（color または軸デフォルト色）
-        - phi が 0/1 の場合は 1=赤, 0=青 に色分け
+        Render vertices as scatter points.
+        - If phi is None: single color (given color or axis default)
+        - If phi is 0/1: color points 1=red, 0=blue
         """
         import numpy as np
         x = np.asarray(xs, dtype=float)

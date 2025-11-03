@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QPushButton, QVBoxLayout,
 )
 
-# SimParams はシミュレーション側の定義を参照
+# See SimParams definition on the simulation side
 from microatoll_gui.simulator.simulator import SimParams
 
 RES_SPACING_M = {"Very Fine": 0.001, "Fine": 0.002, "Medium": 0.005, "Coarse": 0.01, "Very Coarse": 0.02}
@@ -15,13 +15,13 @@ RES_SPACING_M = {"Very Fine": 0.001, "Fine": 0.002, "Medium": 0.005, "Coarse": 0
 
 class SettingsPanel(QWidget):
     """
-    下段のパラメータセッティングパネル（4列グリッド：Label|Input|Label|Input）
-      - Polyline resolution（単独行）
+    Bottom parameter settings panel (4-column grid: Label|Input|Label|Input)
+      - Polyline resolution (single row)
       - Growth rate | Base Height (BH)
       - T0 (initial time) | T1 (end time)
       - Δt | Record every
-      - Initialize / Apply / Run ボタン
-    値の確定（編集完了 or Apply）で parametersChanged(SimParams) を送出します。
+      - Initialize / Run buttons
+    When values are committed (editing finished), emits parametersChanged(SimParams).
     """
 
     parametersChanged = Signal(SimParams)
@@ -30,7 +30,7 @@ class SettingsPanel(QWidget):
         super().__init__(parent)
 
         # --- Widgets ---
-        # 解像度（頂点間隔）
+        # Resolution (vertex spacing)
         self.resolution = QComboBox()
         self.resolution.addItems(["Very Fine", "Fine", "Medium", "Coarse", "Very Coarse"])
         self.resolution.setCurrentText("Medium")
@@ -75,7 +75,7 @@ class SettingsPanel(QWidget):
         self.initial_size = QDoubleSpinBox()
         self.initial_size.setRange(0.01, 1000.0)
         self.initial_size.setDecimals(3)
-        self.initial_size.setValue(0.2)      # 既定値：0.2 m
+        self.initial_size.setValue(0.2)      # default: 0.2 m
         self.initial_size.setSingleStep(0.01)
         self.initial_size.setSuffix(" m")
 
@@ -83,7 +83,7 @@ class SettingsPanel(QWidget):
         self.run_btn = QPushButton("Run")
         self.init_btn = QPushButton("Initialize")
 
-        # 入力欄は横に広がるように
+        # Make input fields expand horizontally
         for w in (self.resolution, self.growth, self.base_height, self.t0, self.t1, self.dt, self.record_every, self.initial_size):
             w.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -95,11 +95,11 @@ class SettingsPanel(QWidget):
 
         def L(text: str) -> QLabel:
             lab = QLabel(text)
-            lab.setAlignment(Qt.AlignRight | Qt.AlignVCenter)  # ラベルは右寄せで列頭を揃える
+            lab.setAlignment(Qt.AlignRight | Qt.AlignVCenter)  # Right-align labels to align column heads
             return lab
 
         row = 0
-        # 1行目：Resolution は入力を3列ぶち抜き（見栄え優先）
+        # Row 1: Resolution spans 3 columns (for layout)
         grid.addWidget(L("Polyline resolution:"), row, 0)
         grid.addWidget(self.resolution, row, 1, 1, 3)  # (row, col, rowspan, colspan)
         row += 1
@@ -108,34 +108,34 @@ class SettingsPanel(QWidget):
         grid.addWidget(self.initial_size, row, 1, 1, 3)
         row += 1
 
-        # 2行目：Growth | BH
+        # Row 2: Growth | BH
         grid.addWidget(L("Growth speed:"),     row, 0)
         grid.addWidget(self.growth,            row, 1)
         grid.addWidget(L("Base Height:"), row, 2)
         grid.addWidget(self.base_height,       row, 3)
         row += 1
 
-        # 3行目：T0 | T1
+        # Row 3: T0 | T1
         grid.addWidget(L("T0 (initial time):"), row, 0)
         grid.addWidget(self.t0,                 row, 1)
         grid.addWidget(L("T1 (end time):"),     row, 2)
         grid.addWidget(self.t1,                 row, 3)
         row += 1
 
-        # 4行目：Δt | Record every
+        # Row 4: Δt | Record every
         grid.addWidget(L("Δt:"),               row, 0)
         grid.addWidget(self.dt,                row, 1)
         grid.addWidget(L("Record every:"),     row, 2)
         grid.addWidget(self.record_every,      row, 3)
         row += 1
 
-        # 列ストレッチ：入力列(1,3)を広げ、ラベル列(0,2)は内容幅に合わせる
+        # Column stretch: widen input columns (1,3); label columns (0,2) fit content
         grid.setColumnStretch(0, 0)
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(2, 0)
         grid.setColumnStretch(3, 1)
 
-        # ボタン行
+        # Buttons row
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         buttons.addWidget(self.init_btn)
@@ -168,7 +168,7 @@ class SettingsPanel(QWidget):
 
     # ---- Public API ----
     def current_params(self) -> SimParams:
-        """現在のUI値から SimParams を組み立てて返す。"""
+        """Build and return SimParams from current UI values."""
         spacing = RES_SPACING_M.get(self.resolution.currentText(), 0.05)
         return SimParams(
             growth_rate_mm_yr=float(self.growth.value()),
@@ -182,7 +182,7 @@ class SettingsPanel(QWidget):
         )
 
     def get_bh(self) -> float:
-        """Base Height (BH) のショートカット取得。"""
+        """Shortcut to get Base Height (BH)."""
         return float(self.base_height.value())
 
     # ---- Internal ----
