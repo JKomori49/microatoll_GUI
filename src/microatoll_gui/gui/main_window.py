@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import logging
 import math
-import sys
-import traceback
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
 
 from pathlib import Path
@@ -17,14 +15,14 @@ from PySide6.QtWidgets import (
     QFileDialog, QMessageBox,
 )
 
-# --- 描画ウィジェット ---
+# --- Plot widgets ---
 from .sl_plot import SeaLevelPlot
 from .sim_plot import SimPlot
 
-# --- 設定パネル（分離ファイル） ---
+# --- Settings panel (separate file) ---
 from .setting_panel import SettingsPanel
 
-# --- シミュレータとパラメータ ---
+# --- Simulator and parameters ---
 from microatoll_gui.simulator.simulator import Simulator, SimParams
 from microatoll_gui.simulator.iteration import IterativeRunner
 
@@ -110,7 +108,7 @@ class MainWindow(QMainWindow):
 
     # ---- Central Layout --------------------------------------
     def _build_central_splitters(self) -> None:
-        # 左＝距離-高度（正方スケール）、右＝CSV（年-高度）
+        # Left: distance–elevation (square scale), Right: CSV (year–elevation)
         self.sim_plot = SimPlot()
         self.sl_plot = SeaLevelPlot()
         self.settings_panel = SettingsPanel()
@@ -119,18 +117,18 @@ class MainWindow(QMainWindow):
         self.settings_panel.run_btn.clicked.connect(self._run_sim)
         self.settings_panel.init_btn.clicked.connect(self._initialize_sim)
 
-        # --- 上段（左右） ---
+        # --- Top row (left/right) ---
         top_split = QSplitter(Qt.Horizontal)
 
         left_frame  = self._wrap_panel(self.sim_plot, None)
         right_frame = self._wrap_panel(self.sl_plot, None)
 
-        # ★ 最低高さを確保（起動直後に潰れない）
+        # Ensure a minimum height (avoid collapsing at startup)
         MIN_TOP_H = 260
         left_frame.setMinimumHeight(MIN_TOP_H)
         right_frame.setMinimumHeight(MIN_TOP_H)
 
-        # 念のため拡張ポリシー（縦横ともに広がる）
+        # Expanding size policy (both directions)
         for fr in (left_frame, right_frame):
             fr.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -140,22 +138,22 @@ class MainWindow(QMainWindow):
 
         top_split.setChildrenCollapsible(False)
 
-        # --- 下段（設定） ---
+        # --- Bottom row (settings) ---
         bottom_frame = self._wrap_panel(self.settings_panel, None)
-        bottom_frame.setMinimumHeight(160)  # 設定パネルが大きくなりすぎないよう最低限だけ
+        bottom_frame.setMinimumHeight(160)  # Minimum to prevent the settings panel from dominating
 
-        # --- 縦割りスプリッタ ---
+        # --- Vertical splitter ---
         vert_split = QSplitter(Qt.Vertical)
         vert_split.addWidget(top_split)
         vert_split.addWidget(bottom_frame)
 
-        # ★ 比率は上段:下段 = 3:1（初期サイズ）
+        # Initial size ratio top:bottom = 3:1
         vert_split.setStretchFactor(0, 3)
         vert_split.setStretchFactor(1, 1)
-        # ★ こちらもつぶれ防止
+        # Prevent collapsing here as well
         vert_split.setChildrenCollapsible(False)
 
-        # 初期サイズ（ウィンドウの想定サイズに基づく目安）
+        # Initial sizes based on the window height
         vert_split.setSizes([int(self.height() * 0.66), int(self.height() * 0.34)])
 
         central = QWidget()
@@ -163,7 +161,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(vert_split)
         self.setCentralWidget(central)
 
-        # 後で参照できるよう保持（任意）
+        # Keep references for later use (optional)
         self._top_split = top_split
         self._vert_split = vert_split
 
@@ -171,7 +169,7 @@ class MainWindow(QMainWindow):
         super().showEvent(e)
         if not getattr(self, "_did_initial_split_sizes", False):
             self._did_initial_split_sizes = True
-            # 実際の表示高さに基づいて再配分
+            # Recalculate based on actual displayed height
             h = max(1, self.centralWidget().height())
             self._vert_split.setSizes([int(h * 0.66), int(h * 0.34)])
 
@@ -195,19 +193,19 @@ class MainWindow(QMainWindow):
 
     def _connect_yaxis_sharing(self) -> None:
         """
-        右（CSV）→ 左（Sim）へ:
-          - yRangeChanged: 数値範囲の共有
-          - yGeometryChanged: 上下余白（ピクセル）も含めた描画マッピング共有
+        Right (CSV) -> Left (Sim):
+          - yRangeChanged: share numerical y-range
+          - yGeometryChanged: share drawing mapping including top/bottom pixel margins
         """
         self.sl_plot.yRangeChanged.connect(self.sim_plot.set_y_range)
         self.sl_plot.yGeometryChanged.connect(self.sim_plot.apply_right_geometry)
 
-        # 左→右（双方向操作対応）
+        # Left -> Right (bidirectional interaction)
         self.sim_plot.yRangeEdited.connect(self._apply_y_from_left)
 
     @Slot(float, float)
     def _apply_y_from_left(self, ymin: float, ymax: float) -> None:
-        # 右パネルに外部適用（xlimはロック、幾何再送を内部で行う）
+        # Apply to right panel externally (xlim locked; geometry rebroadcast internally)
         self.sl_plot.apply_external_y_range(ymin, ymax)
 
     # ---- Handlers --------------------------------------------
@@ -265,17 +263,17 @@ class MainWindow(QMainWindow):
     @Slot()
     def _initialize_sim(self) -> None:
         """
-        現在のパラメータで τ=0 の初期ポリラインを生成して描画（ステップは進めない）。
+        Generate and draw the initial polyline at τ=0 with current parameters (no stepping).
         """
-        # 1) パラメータ反映
+        # 1) Apply parameters
         params = self.settings_panel.current_params()
         self.sim.set_params(params)
         bh = getattr(params, "base_height", 0.0)
 
-        # 2) 初期化（tau=0）
+        # 2) Initialize (tau=0)
         cur = self.sim.initialize()  # {"x","y","phi","tau","t_years"}
 
-        # 3) 描画（初期のみ：細線不要／φ色分け + y<BHシェード）
+        # 3) Draw (initial only: color by φ + shade y<BH)
         if hasattr(self.sim_plot, "plot_polyline_with_phi"):
             self.sim_plot.plot_polyline_with_phi(
                 cur["x"], cur["y"], cur["phi"],
@@ -300,9 +298,9 @@ class MainWindow(QMainWindow):
             xs, ys, meta = read_sea_level_csv(path)
             if not xs:
                 raise ValueError("No valid numeric rows were found.")
-            # 右パネル：まず海水準だけ描く
+            # Right panel: draw only the sea-level curve first
             self.sl_plot.plot_curve(xs, ys, meta)
-            # HLGはまだ無いのでクリア（描画を邪魔しない）
+            # No HLG yet, clear it to avoid clutter
             self.sl_plot.clear_hlg()
 
             # Set T0/T1 from the first/last time values (floored)
@@ -310,7 +308,7 @@ class MainWindow(QMainWindow):
             t1 = math.floor(xs[-1])
             self.settings_panel.set_time_window(t0, t1)
 
-            # NEW: シミュレーションへ海水準曲線を登録
+            # Register sea-level curve to the simulator
             try:
                 self.sim.set_sea_level_curve(xs, ys)  # xs=year, ys=sea-level[m]
             except Exception:
@@ -318,7 +316,7 @@ class MainWindow(QMainWindow):
             self._last_dir = Path(path).parent
             self.statusBar().showMessage(f"Imported: {Path(path).name}", 2500)
 
-            # CSVのy範囲を左へ同期（signalでも飛ぶが明示的にもう一度適用）
+            # Sync CSV y-range to the left (explicit apply in addition to signal)
             yr = self.sl_plot.current_y_range()
             if yr:
                 self.sim_plot.set_y_range(*yr)
@@ -328,9 +326,9 @@ class MainWindow(QMainWindow):
 
     def _export_image_png(self) -> None:
         """
-        上段2パネル（sim_plot, sl_plot）を画面見た目のまま横に結合して1枚のPNGに保存する。
+        Save the two top panels (sim_plot, sl_plot) side by side as a single PNG as displayed.
         """
-        # 保存先ダイアログ
+        # Save dialog
         default_dir = self._last_dir or Path.home()
         suggested = Path(default_dir) / "microatoll_export.png"
         path_str, _ = QFileDialog.getSaveFileName(
@@ -345,13 +343,13 @@ class MainWindow(QMainWindow):
         if out_path.suffix.lower() != ".png":
             out_path = out_path.with_suffix(".png")
 
-        # 必要ウィジェットの存在チェック
+        # Check required widgets exist
         if not hasattr(self, "sim_plot") or not hasattr(self, "sl_plot"):
             QMessageBox.critical(self, "Export failed", "Panels are not ready (sim_plot / sl_plot).")
             return
 
         try:
-            # 各パネルをキャプチャ（見た目どおり）
+            # Grab pixmaps of each panel (as displayed)
             pix1 = self.sim_plot.grab()
             pix2 = self.sl_plot.grab()
             w1, h1 = pix1.width(), pix1.height()
@@ -360,18 +358,18 @@ class MainWindow(QMainWindow):
             W = w1 + w2
             H = max(h1, h2)
 
-            # 透明→白背景で出力（必要に応じて色を変更可）
+            # Use white background instead of transparent (adjust color if needed)
             image = QImage(W, H, QImage.Format_ARGB32)
             image.fill(QColor(Qt.white))
 
-            # 描画合成
+            # Paint composite
             painter = QPainter(image)
-            # 上寄せで配置（高さが異なる場合は上に揃える。中央にしたいなら y を調整）
+            # Align to top (adjust y to center if desired)
             painter.drawPixmap(0, 0, pix1)
             painter.drawPixmap(w1, 0, pix2)
             painter.end()
 
-            # 保存
+            # Save
             if not image.save(str(out_path), "PNG"):
                 raise RuntimeError("Failed to save PNG image.")
 
@@ -383,14 +381,14 @@ class MainWindow(QMainWindow):
 
     def _export_image_svg_separate(self) -> None:
         """
-        sim_plot と sl_plot の Matplotlib 図を、それぞれ別ファイルの SVG（ベクター）として保存する。
-        出力ファイル名は <選択名>_sim.svg と <選択名>_sl.svg。
+        Save Matplotlib figures of sim_plot and sl_plot as separate SVG vector files.
+        Output filenames: <chosen>_sim.svg and <chosen>_sl.svg.
         """
         import io, sys, traceback
         from pathlib import Path
         from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-        # 保存先ベース名
+        # Base filename for saving
         default_dir = self._last_dir or Path.home()
         suggested = Path(default_dir) / "microatoll_export.svg"
         try:
@@ -406,13 +404,13 @@ class MainWindow(QMainWindow):
             sim_path = base.with_name(base.stem + "_sim.svg")
             sl_path  = base.with_name(base.stem + "_sl.svg")
 
-            # 図の取得
+            # Get figures
             fig1 = getattr(getattr(self.sim_plot, "canvas", None), "figure", None)
             fig2 = getattr(getattr(self.sl_plot, "canvas", None), "figure", None)
             if fig1 is None or fig2 is None:
                 raise RuntimeError("Matplotlib figures are not available (sim_plot / sl_plot).")
 
-            # ベクター出力（フォントはアウトライン化しない＝テキストとして保持）
+            # Vector output (keep text; do not outline fonts)
             import matplotlib as mpl
             old_fonttype = mpl.rcParams.get("svg.fonttype", "path")
             try:

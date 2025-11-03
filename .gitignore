@@ -363,5 +363,14 @@ MigrationBackup/
 FodyWeavers.xsd
 
 
-data/
-.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.DS_Store
+.idea/
+.vscode/
+*.sln
+*.user

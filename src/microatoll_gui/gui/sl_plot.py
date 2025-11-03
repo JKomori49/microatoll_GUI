@@ -13,9 +13,9 @@ from .plot_interactions import SeaLevelInteractor
 
 class SeaLevelPlot(QWidget):
     """
-    右パネル：CSVからインポートした曲線を表示。
-    - y軸の実範囲を検出し、共有yスケールとして通知（yRangeChanged）
-    - ユーザー操作や新規データでyが変われば emit で左へ伝達
+    Right panel: display curve imported from CSV.
+    - Detect actual y-range and notify as shared y-scale (yRangeChanged)
+    - When user interaction or new data changes y, emit to the left panel
     """
 
     yRangeChanged = Signal(float, float)  # (ymin, ymax)
@@ -30,9 +30,9 @@ class SeaLevelPlot(QWidget):
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
         
-        self._hlg_line = None          # 全体を結ぶ細線（任意）
-        self._hlg_tri = None           # ▲マーカー（同じ/上昇）
-        self._hlg_circ = None          # ●マーカー（下降）
+        self._hlg_line = None          # Overall connecting line (optional)
+        self._hlg_tri = None           # ▲ marker (same/raised)
+        self._hlg_circ = None          # ● marker (lowered)
         self._has_curve = False
         self._y_range = None
 
@@ -67,7 +67,7 @@ class SeaLevelPlot(QWidget):
         self.yRangeChanged.emit(*self._y_range)
 
     def clear_hlg(self) -> None:
-        """HLGオーバーレイ（線・マーカー）だけを消す（CSVは残す）。"""
+        """Clear only the HLG overlay (line and markers); keep the CSV curve."""
         changed = False
         if self._hlg_line is not None:
             self._hlg_line.remove()
@@ -82,16 +82,16 @@ class SeaLevelPlot(QWidget):
             self._hlg_circ = None
             changed = True
         if changed:
-            # 凡例を描き直し（Sea level のみ or 他の凡例と整合）
+            # Redraw legend (Sea level only or consistent with others)
             self.ax.legend(loc="best")
             self.canvas.draw_idle()
             self._broadcast_geometry()
 
     def plot_hlg_series(self, times, values) -> None:
         """
-        記録済みHLG (t, y) をオーバーレイ表示。
-        前回より同じ/高い点は ▲、低い点は ● で描画する。
-        入力が空・不整合ならHLGのみクリア（CSVはそのまま）。
+        Overlay recorded HLG (t, y).
+        Points same/higher than previous use ▲; lower points use ●.
+        If input is empty/inconsistent, clear HLG overlay (keep CSV as-is).
         """
         ts = list(times or [])
         ys = list(values or [])
@@ -99,7 +99,7 @@ class SeaLevelPlot(QWidget):
             self.clear_hlg()
             return
 
-        # 線（全体の接続）を用意（初回のみ作成、以降は更新）
+        # Prepare connecting line (create on first call, update thereafter)
         if self._hlg_line is None:
             (self._hlg_line,) = self.ax.plot(
                 ts, ys, linestyle="-", linewidth=1.0,
@@ -108,7 +108,7 @@ class SeaLevelPlot(QWidget):
         else:
             self._hlg_line.set_data(ts, ys)
 
-        # 前回値との比較でマーカー分類（初点は▲扱い）
+        # Classify markers by comparison with previous (first point treated as ▲)
         tri_t, tri_y = [], []   # ▲：同じ/上昇（>=）
         circ_t, circ_y = [], [] # ●：下降（<）
         prev = None
@@ -119,7 +119,7 @@ class SeaLevelPlot(QWidget):
                 circ_t.append(t); circ_y.append(v)
             prev = v
 
-        # 既存マーカーを消して描き直し
+        # Remove existing markers and redraw
         if self._hlg_tri is not None:
             self._hlg_tri.remove()
             self._hlg_tri = None
@@ -138,10 +138,10 @@ class SeaLevelPlot(QWidget):
                 edgecolors="0.25", facecolors="0.65", alpha=0.95, label="HLS after diedown"
             )
 
-        # 凡例更新（Sea level + HLG系）
+        # Update legend (Sea level + HLG)
         self.ax.legend(loc="best")
 
-        # yレンジはCSV基準を維持（必要ならHLGも含めて拡張する以下を有効化）
+        # Keep y-range based on CSV (enable below to extend with HLG if needed)
         # if self._y_range:
         #     ymin = min(self._y_range[0], min(ys))
         #     ymax = max(self._y_range[1], max(ys))
@@ -156,8 +156,8 @@ class SeaLevelPlot(QWidget):
 
     # --- QWidget overrides ------------------------------------------
     def resizeEvent(self, event) -> None:  # noqa: N802
-        # リサイズで軸範囲は保持。必要ならここで将来的に通知も可能。
-        # （現状は右→左へ一方向共有）
+        # Keep axis range on resize. Notifications could be added here later.
+        # (Currently sharing is one-way right->left.)
         super().resizeEvent(event)
         self._broadcast_geometry()
 
@@ -171,16 +171,16 @@ class SeaLevelPlot(QWidget):
         self.canvas.draw_idle()
 
     def _broadcast_geometry(self) -> None:
-        """Axesの上下位置（ピクセル）を測って左へ通知。"""
+        """Measure axes top/bottom positions (pixels) and notify the left panel."""
         try:
-            self.fig.canvas.draw()  # レイアウト確定
-            bbox = self.ax.get_window_extent()  # ピクセル座標（FigureCanvas上）
+            self.fig.canvas.draw()  # Fix layout
+            bbox = self.ax.get_window_extent()  # Pixel coordinates on FigureCanvas
             canvas_h = self.canvas.height() 
-            top_px = int(max(0, canvas_h - bbox.y1))   # 上端の余白
-            bottom_px = int(max(0, bbox.y0))           # 下端の余白
+            top_px = int(max(0, canvas_h - bbox.y1))   # Top margin
+            bottom_px = int(max(0, bbox.y0))           # Bottom margin
             if self._y_range:
                 ymin, ymax = self._y_range
-                # （幅方向は左で xlim をトリミングして対応する方針）
+                # (Width direction is handled on the left by trimming xlim)
                 self.yGeometryChanged.emit(ymin, ymax, top_px, bottom_px, canvas_h)
         except Exception:
             pass
@@ -195,20 +195,20 @@ class SeaLevelPlot(QWidget):
             pad = 1.0 if ymin == 0 else abs(ymin) * 0.1
             ymin, ymax = ymin - pad, ymax + pad
         else:
-            # 5%のマージンで見やすく
+            # Add 5% margin for readability
             span = ymax - ymin
             ymin -= 0.05 * span
             ymax += 0.05 * span
         return (ymin, ymax)
 
     def apply_external_y_range(self, ymin: float, ymax: float) -> None:
-        """外部から y 範囲の指示を受け取る（x は不変）。幾何を再送して左へ同期。"""
+        """Receive external y-range (x unchanged). Rebroadcast geometry to sync left panel."""
         if ymin == ymax:
             pad = 1.0 if ymin == 0 else abs(ymin) * 0.1
             ymin, ymax = ymin - pad, ymax + pad
         self._y_range = (ymin, ymax)
         self.ax.set_ylim(ymin, ymax)
         self.canvas.draw_idle()
-        # 自パネルの標準イベントと同じく通知
+        
         self.yRangeChanged.emit(ymin, ymax)
         self._broadcast_geometry()

@@ -44,7 +44,7 @@ class IterativeRunner:
                 y = np.asarray(cur["y"], dtype=float)
                 phi = np.asarray(cur.get("phi"), dtype=int)
 
-                # HLG: φ==1 に限定したときの y 最大値（存在しなければ None）
+                # HLG: max y among points where φ==1 (None if none exist)
                 hlg_val = None
                 if phi.size and np.any(phi == 1):
                     hlg_val = float(y[phi == 1].max())
@@ -63,7 +63,7 @@ class IterativeRunner:
                 next_record_time += record_every
 
         return {
-            "final": result,                     # 最後の step_once() 結果
-            "records": self.records,             # 途中ポリラインのスナップショット
-            "hlg": {"t": self.hlg_times, "y": self.hlg_values},  # 時系列HLG
+            "final": result,                     # Result of the last step_once()
+            "records": self.records,             # Snapshots of intermediate polylines
+            "hlg": {"t": self.hlg_times, "y": self.hlg_values},  # Time-series HLG
         }
